@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    overflow-x: hidden;
+  }
+  a {
+    color: inherit;
+  }
+}
+
+@layer components {
+  /* Mirrors the original .glass-card */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 2rem;
+  }
+
+  /* Mirrors the original .btn-primary */
+  .btn-primary {
+    background: linear-gradient(135deg, #e50914, #ff4b4b);
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    text-align: center;
+    display: inline-block;
+  }
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(229, 9, 20, 0.4);
+  }
+  .btn-primary:disabled {
+    background: #333;
+    color: #777;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
+
+  .btn-outline {
+    @apply btn-primary;
+    background: transparent;
+    border: 1px solid white;
+  }
+
+  .form-input {
+    width: 100%;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: white;
+    outline: none;
+  }
+  .form-input:focus {
+    border-color: #e50914;
+  }
+}
