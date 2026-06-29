@@ -1,49 +1,66 @@
 require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const rateLimit = require('express-rate-limit');
+const http = require('http');
 const connectDB = require('./config/db');
-const { errorHandler, notFound } = require('./middleware/errorHandler');
+const app = require('./src/app');
+const env = require('./src/config/env');
+const logger = require('./src/utils/logger');
+const mongoose = require('mongoose');
+const socketUtil = require('./src/utils/socket');
 
-const authRoutes = require('./routes/authRoutes');
-const roomRoutes = require('./routes/roomRoutes');
-const userRoutes = require('./routes/userRoutes');
+const PORT = env.PORT || 5000;
 
-const app = express();
+let server;
 
-// --- Middleware ---
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL || '*',
-    credentials: true,
-  })
-);
-app.use(express.json({ limit: '2mb' })); // 2mb to allow base64 profile pictures
-
-// Basic rate limiting on auth routes to slow down brute-force attempts
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50,
-  message: { message: 'Too many requests, please try again later.' },
-});
-app.use('/api/auth', authLimiter);
-
-// --- Routes ---
-app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
-app.use('/api/auth', authRoutes);
-app.use('/api/rooms', roomRoutes);
-app.use('/api/users', userRoutes);
-
-// --- Error handling (must be last) ---
-app.use(notFound);
-app.use(errorHandler);
-
-const PORT = process.env.PORT || 5000;
-
-// Connect to DB, then start listening (only matters for local/Render run;
-// Vercel's serverless adapter imports `app` directly - see api/index.js)
+// Connect to MongoDB, then boot server
 connectDB().then(() => {
-  app.listen(PORT, () => console.log(`MovieMate API running on port ${PORT}`));
+  const httpServer = http.createServer(app);
+  socketUtil.init(httpServer);
+  server = httpServer.listen(PORT, () => {
+    logger.info(`========================================`);
+    logger.info(`PhilixMate X Enterprise API Booted`);
+    logger.info(`Environment: ${env.NODE_ENV}`);
+    logger.info(`Port: ${PORT}`);
+    logger.info(`========================================`);
+  });
 });
+
+process.on('unhandledRejection', (reason) => {
+  logger.error('Unhandled promise rejection detected', { reason: reason instanceof Error ? reason.message : String(reason) });
+  process.exit(1);
+});
+
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught exception detected', { reason: error.message, stack: error.stack });
+  process.exit(1);
+});
+
+// Graceful Shutdown Handler
+const handleGracefulShutdown = (signal) => {
+  logger.info(`Received ${signal}. Starting graceful shutdown...`);
+  
+  if (server) {
+    server.close(() => {
+      logger.info('HTTP server closed.');
+      mongoose.connection.close().then(() => {
+        logger.info('MongoDB connection closed.');
+        process.exit(0);
+      }).catch((err) => {
+        logger.error('Failed to close MongoDB connection:', err);
+        process.exit(1);
+      });
+    });
+  } else {
+    process.exit(0);
+  }
+
+  // Force shutdown after 10s timeout
+  setTimeout(() => {
+    logger.warn('Forcing immediate shutdown due to process timeout.');
+    process.exit(1);
+  }, 10000);
+};
+
+process.on('SIGTERM', () => handleGracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => handleGracefulShutdown('SIGINT'));
 
 module.exports = app;
