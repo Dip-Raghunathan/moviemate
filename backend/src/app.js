@@ -73,6 +73,9 @@ app.get('/api/v1/health', (req, res) => {
 // Mount modular versioned APIs
 app.use('/api/v1', v1Router);
 
+// Direct versioned API mount (covers direct /v1 requests)
+app.use('/v1', v1Router);
+
 // Backward compatibility mount
 app.use('/api', v1Router);
 
