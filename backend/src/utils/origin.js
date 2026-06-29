@@ -20,15 +20,24 @@ function isAllowedOrigin(origin, clientUrl) {
   const normalizedOrigin = normalizeOrigin(origin);
   const normalizedClientUrl = normalizeOrigin(clientUrl);
 
-  if (!normalizedOrigin || !normalizedClientUrl) {
+  if (!normalizedOrigin) {
     return false;
   }
 
-  if (normalizedOrigin === normalizedClientUrl) {
+  if (normalizedClientUrl && normalizedOrigin === normalizedClientUrl) {
     return true;
   }
 
-  return ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5000', 'http://127.0.0.1:5000'].includes(normalizedOrigin);
+  if (['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5000', 'http://127.0.0.1:5000'].includes(normalizedOrigin)) {
+    return true;
+  }
+
+  // Allow all vercel.app and render.com/onrender.com subdomains for easier deployment setup
+  if (normalizedOrigin.endsWith('.vercel.app') || normalizedOrigin.endsWith('.render.com') || normalizedOrigin.endsWith('.onrender.com')) {
+    return true;
+  }
+
+  return false;
 }
 
 module.exports = {

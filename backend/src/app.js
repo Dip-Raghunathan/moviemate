@@ -6,6 +6,7 @@ const requestIdMiddleware = require('./middlewares/request-id.middleware');
 const responseMiddleware = require('./middlewares/response.middleware');
 const { securityHeaders, sanitizeNoSql, csrfCheck } = require('./middlewares/security.middleware');
 const { errorMiddleware, notFoundMiddleware } = require('./middlewares/error.middleware');
+const { isAllowedOrigin } = require('./utils/origin');
 const v1Router = require('./api/v1.routes');
 
 const app = express();
@@ -21,7 +22,13 @@ app.use(csrfCheck);
 
 app.use(
   cors({
-    origin: env.CLIENT_URL || '*',
+    origin: (origin, callback) => {
+      if (!origin || isAllowedOrigin(origin, env.CLIENT_URL)) {
+        callback(null, true);
+      } else {
+        callback(null, false);
+      }
+    },
     credentials: true,
   })
 );
