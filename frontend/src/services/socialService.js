@@ -54,3 +54,13 @@ export const markAllNotificationsRead = async () => {
   const res = await api.post('/social/notifications/read-all');
   return res.data;
 };
+
+export const deleteNotification = async (notificationId) => {
+  const res = await api.delete(`/social/notifications/${notificationId}`);
+  return res.data;
+};
+
+export const clearAllNotifications = async () => {
+  const res = await api.delete('/social/notifications');
+  return res.data;
+};

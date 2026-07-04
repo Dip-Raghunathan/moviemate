@@ -56,7 +56,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signup = async (data) => {
-    const { token, user } = await authService.signup(data);
+    const res = await authService.signup(data);
+    if (res?.requiresVerification) {
+      return { requiresVerification: true };
+    }
+    const { token, user } = res;
     localStorage.setItem('philixmate_token', token);
     localStorage.setItem('philixmate_user', JSON.stringify(user));
     setUser(user);

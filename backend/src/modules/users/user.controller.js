@@ -30,6 +30,15 @@ class UserController {
       next(error);
     }
   };
+
+  deleteAccount = async (req, res, next) => {
+    try {
+      const result = await userService.deleteAccount(req.user._id);
+      return res.success(result, 'Account deleted successfully');
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 module.exports = new UserController();

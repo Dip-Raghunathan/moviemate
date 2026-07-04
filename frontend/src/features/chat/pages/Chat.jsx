@@ -145,7 +145,18 @@ const Chat = () => {
   const [reactionsMap, setReactionsMap] = useState({});
   const [pinnedMessages, setPinnedMessages] = useState([]);
   const [pinnedOpen, setPinnedOpen] = useState(false);
+  const [membersOpen, setMembersOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  const [width, setWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
+
+  useEffect(() => {
+    const handleResize = () => setWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isMobile = width < 768;
 
   const lastMessageTime = useRef(null);
   const chatBoxRef      = useRef(null);
@@ -208,6 +219,12 @@ const Chat = () => {
         if (message.createdAt) {
           lastMessageTime.current = message.createdAt;
         }
+      }
+    });
+
+    socketInstance.on('room_updated', (updatedRoom) => {
+      if (!cancelled && updatedRoom) {
+        setRoom(updatedRoom);
       }
     });
 
@@ -291,8 +308,7 @@ const Chat = () => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
-  const handleLeave = async () => {
-    try { await roomService.leaveRoom(roomId); } catch {}
+  const handleExitChat = () => {
     navigate('/dashboard');
   };
 
@@ -359,7 +375,10 @@ const Chat = () => {
           )}
           {/* Pinned Messages Button */}
           <button
-            onClick={() => setPinnedOpen(o => !o)}
+            onClick={() => {
+              setPinnedOpen(o => !o);
+              setMembersOpen(false);
+            }}
             style={{
               padding: '6px 12px', borderRadius: 9999,
               background: pinnedOpen ? 'rgba(245,166,35,0.15)' : 'rgba(255,255,255,0.05)',
@@ -371,17 +390,45 @@ const Chat = () => {
             onMouseEnter={e => { if (!pinnedOpen) e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; }}
             onMouseLeave={e => { if (!pinnedOpen) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
           >
-            <PremiumIcon name="pin" size={16} color="#f0f0fa" style={{ marginRight: 6 }} />
-            Pinned
+            <PremiumIcon name="pin" size={16} color={pinnedOpen ? '#ffc107' : '#f0f0fa'} />
+            {!isMobile && 'Pinned'}
+          </button>
+
+          {/* Members List Button */}
+          <button
+            onClick={() => {
+              setMembersOpen(o => !o);
+              setPinnedOpen(false);
+            }}
+            style={{
+              padding: '6px 12px', borderRadius: 9999,
+              background: membersOpen ? 'rgba(255,107,122,0.15)' : 'rgba(255,255,255,0.05)',
+              border: `1px solid ${membersOpen ? 'rgba(255,107,122,0.3)' : 'rgba(255,255,255,0.08)'}`,
+              color: membersOpen ? '#ff6b7a' : '#a8a8c0',
+              fontSize: '0.8125rem', fontWeight: 600, cursor: 'pointer', transition: 'all 200ms ease',
+              display: 'flex', alignItems: 'center', gap: 4
+            }}
+            onMouseEnter={e => { if (!membersOpen) e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; }}
+            onMouseLeave={e => { if (!membersOpen) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+          >
+            <PremiumIcon name="group" size={16} color={membersOpen ? '#ff6b7a' : '#f0f0fa'} />
+            {!isMobile && `Members (${room?.members?.length || 0})`}
           </button>
           <button
-            id="leave-room-btn"
-            onClick={handleLeave}
-            style={{ padding: '7px 16px', borderRadius: 9999, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#f87171', fontSize: '0.8125rem', fontWeight: 600, cursor: 'pointer', transition: 'all 200ms ease' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.18)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; }}
+            id="exit-chat-btn"
+            onClick={handleExitChat}
+            style={{
+              padding: '7px 16px', borderRadius: 9999,
+              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              color: '#a8a8c0',
+              fontSize: '0.8125rem', fontWeight: 600, cursor: 'pointer', transition: 'all 200ms ease',
+              display: 'flex', alignItems: 'center', gap: 4
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
           >
-            Leave Room
+            {isMobile ? 'Exit' : 'Exit Chat'}
           </button>
         </div>
       </header>
@@ -498,12 +545,17 @@ const Chat = () => {
         {/* ── Right Pinned Sidebar ── */}
         {pinnedOpen && (
           <aside style={{
-            width: 280, flexShrink: 0,
-            background: 'rgba(8,8,16,0.85)',
-            backdropFilter: 'blur(16px)',
+            width: isMobile ? '100%' : 280,
+            position: isMobile ? 'absolute' : 'relative',
+            right: 0, top: 0, bottom: 0,
+            zIndex: isMobile ? 30 : 1,
+            flexShrink: 0,
+            background: 'rgba(8,8,16,0.95)',
+            backdropFilter: 'blur(20px)',
             borderLeft: '1px solid rgba(255,255,255,0.06)',
             display: 'flex', flexDirection: 'column',
             overflowY: 'auto',
+            boxShadow: isMobile ? '-8px 0 32px rgba(0,0,0,0.8)' : 'none',
           }}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: '#f0f0fa', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -539,6 +591,60 @@ const Chat = () => {
                   </div>
                 ))
               )}
+            </div>
+          </aside>
+        )}
+
+        {/* ── Right Members Sidebar ── */}
+        {membersOpen && (
+          <aside style={{
+            width: isMobile ? '100%' : 280,
+            position: isMobile ? 'absolute' : 'relative',
+            right: 0, top: 0, bottom: 0,
+            zIndex: isMobile ? 30 : 1,
+            flexShrink: 0,
+            background: 'rgba(8,8,16,0.95)',
+            backdropFilter: 'blur(20px)',
+            borderLeft: '1px solid rgba(255,255,255,0.06)',
+            display: 'flex', flexDirection: 'column',
+            overflowY: 'auto',
+            boxShadow: isMobile ? '-8px 0 32px rgba(0,0,0,0.8)' : 'none',
+          }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: '#f0f0fa', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <PremiumIcon name="group" size={18} color="#ff6b7a" />
+                Room Members ({room?.members?.length || 0})
+              </h3>
+              <button onClick={() => setMembersOpen(false)} style={{ background: 'none', border: 'none', color: '#6b6b85', fontSize: '0.8rem', cursor: 'pointer' }}>Close</button>
+            </div>
+            <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {room?.members?.map((m, i) => {
+                const name = m.name || m.user?.name || 'User';
+                const age = m.age || m.user?.age;
+                return (
+                  <div key={i} style={{
+                    padding: 12, borderRadius: 12,
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.05)',
+                    display: 'flex', alignItems: 'center', gap: 10
+                  }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: m.isHost ? '#f5a623' : '#ff6b7a' }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: '0.85rem', color: '#f0f0fa', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {name}
+                        {m.isHost && (
+                          <span style={{
+                            fontSize: '0.65rem', padding: '1px 5px', borderRadius: 4,
+                            background: 'rgba(245,166,35,0.12)', color: '#f5a623',
+                            border: '1px solid rgba(245,166,35,0.25)', fontWeight: 700
+                          }}>Host</span>
+                        )}
+                      </p>
+                      {age && <p style={{ fontSize: '0.75rem', color: '#6b6b85', margin: '2px 0 0' }}>{age} years old</p>}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </aside>
         )}

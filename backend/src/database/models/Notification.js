@@ -15,7 +15,6 @@ const notificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['match_found', 'message', 'friend_request', 'community_invite'],
       required: true,
     },
     title: {
@@ -46,5 +45,6 @@ const notificationSchema = new mongoose.Schema(
 );
 
 notificationSchema.index({ recipient: 1, status: 1, createdAt: -1 });
+notificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 2592000 }); // Automatically delete notifications older than 30 days
 
 module.exports = mongoose.model('Notification', notificationSchema);

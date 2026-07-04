@@ -58,9 +58,42 @@ class MatchingController {
 
   joinRoom = async (req, res, next) => {
     try {
-      const room = await matchingService.joinRoom(req.params.id, req.user);
+      const room = await matchingService.joinRoom(req.params.id, req.user, req.body.introduction);
       const response = RoomDTO.fromRoom(room);
       return res.success({ room: response }, 'Joined vacant session successfully');
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  getUnreviewedRoom = async (req, res, next) => {
+    try {
+      const room = await matchingService.getUnreviewedRoom(req.user._id);
+      if (room) {
+        const { RoomDTO } = require('./matching.dto');
+        const response = RoomDTO.fromRoom(room);
+        return res.success({ room: response }, 'Unreviewed room found');
+      }
+      return res.success({ room: null }, 'No unreviewed room');
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  setReadyToChat = async (req, res, next) => {
+    try {
+      const result = await matchingService.setReadyToChat(req.params.id, req.user._id);
+      const response = RoomDTO.fromRoom(result.room);
+      return res.success({ allReady: result.allReady, room: response }, 'Ready to chat status updated');
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  leaveIntro = async (req, res, next) => {
+    try {
+      const result = await matchingService.leaveIntro(req.params.id, req.user._id);
+      return res.success(result, 'Successfully left match introduction');
     } catch (error) {
       next(error);
     }

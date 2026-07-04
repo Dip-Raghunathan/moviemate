@@ -87,6 +87,7 @@ class AuthService {
       throw new BadRequestError('An account with this email already exists', 'EMAIL_ALREADY_EXISTS');
     }
 
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const user = await authRepository.createUser({
       name,
       email,
@@ -95,12 +96,11 @@ class AuthService {
       gender,
       favoriteGenres: Array.isArray(favoriteGenres) ? favoriteGenres : [],
       role: 'user',
+      isVerified: false,
+      isEmailVerified: false,
+      verificationOTP: otp,
+      otpExpiry: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
     });
-
-    const accessToken = this.generateAccessToken(user._id);
-    const refreshToken = crypto.randomBytes(40).toString('hex');
-    
-    await this.createSession(user._id, refreshToken, ip, userAgent);
 
     // Audit log signup
     await AuditLog.create({
@@ -110,10 +110,15 @@ class AuthService {
       userAgent,
       details: { email: user.email },
     });
+    logger.auth(`User signed up: ${user.email} from IP ${ip} (requires email verification)`);
 
-    logger.auth(`User signed up: ${user.email} from IP ${ip}`);
+    try {
+      await this.sendVerificationEmail(user.email, otp, user.name);
+    } catch (emailError) {
+      console.error('Failed to send verification email during signup:', emailError.message);
+    }
 
-    return { user, accessToken, refreshToken };
+    return { requiresVerification: true, email: user.email };
   }
 
   async login(email, password, ip, userAgent) {
@@ -124,6 +129,10 @@ class AuthService {
 
     if (user.status === 'suspended') {
       throw new UnauthorizedError('Your account has been suspended', 'ACCOUNT_SUSPENDED');
+    }
+
+    if (!user.isVerified) {
+      throw new UnauthorizedError('Please verify your email first.', 'EMAIL_NOT_VERIFIED');
     }
 
     const accessToken = this.generateAccessToken(user._id);
@@ -267,21 +276,88 @@ class AuthService {
     return { success: true };
   }
 
-  async forgotPassword(email) {
-    const user = await authRepository.findByEmail(email);
+  async verifyEmail(email, otp) {
+    const User = require('../../database/models/User');
+    const user = await User.findOne({ email: email.toLowerCase() }).select('+verificationOTP +otpExpiry');
 
     if (!user) {
+      throw new NotFoundError('User not found', 'USER_NOT_FOUND');
+    }
+
+    if (user.isVerified) {
       return { success: true };
     }
 
-    const resetToken = user.generateResetToken();
+    const now = new Date();
+    if (user.otpExpiry && now > user.otpExpiry) {
+      throw new BadRequestError('OTP expired. Please request a new OTP.', 'OTP_EXPIRED');
+    }
+
+    if (user.verificationOTP !== otp) {
+      throw new BadRequestError('Invalid verification code.', 'INVALID_OTP');
+    }
+
+    user.isVerified = true;
+    user.isEmailVerified = true;
+    user.verificationOTP = undefined;
+    user.otpExpiry = undefined;
+    await user.save();
+
+    // Trigger Welcome / Email Verified Notification
+    try {
+      const { sendNotification } = require('../../utils/notificationHelper');
+      await sendNotification({
+        recipient: user._id,
+        type: 'account_alert',
+        title: 'Email Verified',
+        body: '✉️ Your email address has been verified successfully. Welcome to PhilixMate!',
+        deepLink: '/profile',
+        priority: 'normal'
+      });
+    } catch (err) {
+      console.error('Failed to trigger verification notification:', err);
+    }
+
+    return { success: true };
+  }
+
+  async resendVerificationOTP(email) {
+    const User = require('../../database/models/User');
+    const user = await User.findOne({ email: email.toLowerCase() });
+
+    if (!user) {
+      throw new NotFoundError('User not found', 'USER_NOT_FOUND');
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    user.verificationOTP = otp;
+    user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    await user.save();
+
+    await this.sendVerificationEmail(user.email, otp, user.name);
+
+    return { success: true };
+  }
+
+  async forgotPassword(email) {
+    const User = require('../../database/models/User');
+    const user = await User.findOne({ email: email.toLowerCase() });
+
+    if (!user) {
+      // Don't leak user existence
+      return { success: true };
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    user.resetOTP = otp;
+    user.resetOTPExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
     await user.save();
 
     try {
-      await this.sendResetEmail(user.email, resetToken, user.name);
+      await this.sendResetOTPEmail(user.email, otp, user.name);
     } catch (emailError) {
-      user.resetPasswordToken = undefined;
-      user.resetPasswordExpires = undefined;
+      user.resetOTP = undefined;
+      user.resetOTPExpiry = undefined;
       await user.save();
       console.error('Email send failed:', emailError.message);
       throw new Error('Could not send reset email. Please try again later.');
@@ -290,32 +366,69 @@ class AuthService {
     return { success: true };
   }
 
-  async resetPassword(token, password) {
-    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
-    const user = await authRepository.findByResetToken(hashedToken);
+  async verifyResetOTP(email, otp) {
+    const User = require('../../database/models/User');
+    const user = await User.findOne({ email: email.toLowerCase() }).select('+resetOTP +resetOTPExpiry');
 
     if (!user) {
-      throw new BadRequestError('Reset link is invalid or has expired', 'INVALID_RESET_TOKEN');
+      throw new NotFoundError('User not found', 'USER_NOT_FOUND');
+    }
+
+    const now = new Date();
+    if (user.resetOTPExpiry && now > user.resetOTPExpiry) {
+      throw new BadRequestError('OTP expired. Please request a new OTP.', 'OTP_EXPIRED');
+    }
+
+    if (user.resetOTP !== otp) {
+      throw new BadRequestError('Invalid reset code.', 'INVALID_OTP');
+    }
+
+    return { success: true };
+  }
+
+  async resetPasswordWithOTP(email, otp, password) {
+    const User = require('../../database/models/User');
+    const user = await User.findOne({ email: email.toLowerCase() }).select('+resetOTP +resetOTPExpiry');
+
+    if (!user) {
+      throw new NotFoundError('User not found', 'USER_NOT_FOUND');
+    }
+
+    const now = new Date();
+    if (user.resetOTPExpiry && now > user.resetOTPExpiry) {
+      throw new BadRequestError('OTP expired. Please request a new OTP.', 'OTP_EXPIRED');
+    }
+
+    if (user.resetOTP !== otp) {
+      throw new BadRequestError('Invalid reset code.', 'INVALID_OTP');
     }
 
     user.password = password;
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
+    user.resetOTP = undefined;
+    user.resetOTPExpiry = undefined;
     await user.save();
+
+    try {
+      const { sendNotification } = require('../../utils/notificationHelper');
+      await sendNotification({
+        recipient: user._id,
+        type: 'account_alert',
+        title: 'Password Changed',
+        body: '🔑 Your password was successfully changed.',
+        deepLink: '/sessions',
+        priority: 'high'
+      });
+    } catch (err) {
+      console.error('Failed to trigger reset password notification:', err);
+    }
 
     // Revoke all active sessions on password reset for security
     await Session.updateMany({ user: user._id }, { $set: { isRevoked: true } });
 
-    const accessToken = this.generateAccessToken(user._id);
-    const refreshToken = crypto.randomBytes(40).toString('hex');
-    
-    // Create new login session after password reset
-    await this.createSession(user._id, refreshToken, '127.0.0.1', 'Password Reset Flow');
-
-    return { user, accessToken, refreshToken };
+    return { success: true };
   }
 
-  async sendResetEmail(toEmail, resetToken, userName) {
+  async sendVerificationEmail(toEmail, otp, userName) {
     const transporter = nodemailer.createTransport({
       host: env.SMTP.HOST,
       port: env.SMTP.PORT,
@@ -326,22 +439,59 @@ class AuthService {
       },
     });
 
-    const resetUrl = `${env.CLIENT_URL}/reset-password/${resetToken}`;
     const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #141414; color: #f5f5f5; padding: 30px; border-radius: 12px;">
-        <h2 style="color: #E50914;">VX ShowMate</h2>
-        <p>Hi ${userName},</p>
-        <p>We received a request to reset your password. Click the button below to choose a new one. This link expires in 30 minutes.</p>
-        <a href="${resetUrl}" style="display:inline-block; background: linear-gradient(135deg,#E50914,#ff4b4b); color:white; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:600; margin: 20px 0;">Reset Password</a>
-        <p style="color:#aaaaaa; font-size: 0.85rem;">If you didn't request this, you can safely ignore this email.</p>
-        <p style="color:#aaaaaa; font-size: 0.8 .5rem;">Or paste this link in your browser: ${resetUrl}</p>
+      <div style="font-family: 'Outfit', 'Inter', Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #05050a; color: #f0f0fa; padding: 40px 30px; border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 12px 32px rgba(0,0,0,0.4);">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <div style="display: inline-block; width: 48px; height: 48px; border-radius: 14px; background: linear-gradient(135deg,#e8102a,#ff4b5e); line-height: 48px; color: white; font-weight: bold; font-size: 20px; text-align: center;">PM</div>
+          <h2 style="color: #f0f0fa; font-size: 22px; margin-top: 16px; font-weight: 800; letter-spacing: -0.02em; text-align: center;">PhilixMate</h2>
+        </div>
+        <p style="font-size: 15px; color: #a8a8c0; line-height: 1.6; margin-bottom: 24px;">Hi ${userName},</p>
+        <p style="font-size: 15px; color: #a8a8c0; line-height: 1.6; margin-bottom: 24px;">Welcome to PhilixMate! Please use the 6-digit verification code below to verify your email address. This code is valid for 10 minutes.</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <span style="font-family: monospace; font-size: 36px; font-weight: 800; color: #ff6b7a; letter-spacing: 6px; padding: 12px 24px; background: rgba(232, 16, 42, 0.08); border: 1px solid rgba(232, 16, 42, 0.25); border-radius: 12px; display: inline-block;">${otp}</span>
+        </div>
+        <p style="color: #6b6b85; font-size: 12px; line-height: 1.5; text-align: center; margin-top: 30px;">If you didn't request this verification code, you can safely ignore this email.</p>
       </div>
     `;
 
     await transporter.sendMail({
       from: env.SMTP.FROM,
       to: toEmail,
-      subject: 'Reset your VX ShowMate password',
+      subject: 'Verify your PhilixMate Account',
+      html,
+    });
+  }
+
+  async sendResetOTPEmail(toEmail, otp, userName) {
+    const transporter = nodemailer.createTransport({
+      host: env.SMTP.HOST,
+      port: env.SMTP.PORT,
+      secure: env.SMTP.PORT === 465,
+      auth: {
+        user: env.SMTP.USER,
+        pass: env.SMTP.PASS,
+      },
+    });
+
+    const html = `
+      <div style="font-family: 'Outfit', 'Inter', Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #05050a; color: #f0f0fa; padding: 40px 30px; border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 12px 32px rgba(0,0,0,0.4);">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <div style="display: inline-block; width: 48px; height: 48px; border-radius: 14px; background: linear-gradient(135deg,#e8102a,#ff4b5e); line-height: 48px; color: white; font-weight: bold; font-size: 20px; text-align: center;">PM</div>
+          <h2 style="color: #f0f0fa; font-size: 22px; margin-top: 16px; font-weight: 800; letter-spacing: -0.02em; text-align: center;">PhilixMate</h2>
+        </div>
+        <p style="font-size: 15px; color: #a8a8c0; line-height: 1.6; margin-bottom: 24px;">Hi ${userName},</p>
+        <p style="font-size: 15px; color: #a8a8c0; line-height: 1.6; margin-bottom: 24px;">We received a request to reset your password. Use the 6-digit verification code below to reset your password. This code is valid for 10 minutes.</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <span style="font-family: monospace; font-size: 36px; font-weight: 800; color: #ff6b7a; letter-spacing: 6px; padding: 12px 24px; background: rgba(232, 16, 42, 0.08); border: 1px solid rgba(232, 16, 42, 0.25); border-radius: 12px; display: inline-block;">${otp}</span>
+        </div>
+        <p style="color: #6b6b85; font-size: 12px; line-height: 1.5; text-align: center; margin-top: 30px;">If you didn't request a password reset, you can safely ignore this email.</p>
+      </div>
+    `;
+
+    await transporter.sendMail({
+      from: `"${env.SMTP.FROM.split('"')[1] || 'PhilixMate Team'}" <${env.SMTP.FROM.match(/<([^>]+)>/)?.[1] || env.SMTP.FROM}>`,
+      to: toEmail,
+      subject: 'Reset Your PhilixMate Password',
       html,
     });
   }

@@ -385,6 +385,20 @@ export const LightbulbIcon = ({ size = 24, color = 'currentColor' }) => (
   </svg>
 );
 
+export const TicketIcon = ({ size = 24, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M4 8.5V6a2 2 0 012-2h12a2 2 0 012 2v2.5a1.5 1.5 0 000 3v2.5a2 2 0 01-2 2H6a2 2 0 01-2-2v-2.5a1.5 1.5 0 000-3z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M9 17V7M15 17V7" stroke={color} strokeWidth="2" strokeDasharray="2 2"/>
+  </svg>
+);
+
+export const SearchIcon = ({ size = 24, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="11" cy="11" r="8" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M21 21l-4.35-4.35" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 // Icon mapping for easy usage
 export const NAME_TO_ICON_MAP = {
   'movie': MovieIcon,
@@ -433,7 +447,9 @@ export const NAME_TO_ICON_MAP = {
   'linux': LinuxIcon,
   'laptop': LaptopIcon,
   'globe': GlobeIcon,
-  'lightbulb': LightbulbIcon
+  'lightbulb': LightbulbIcon,
+  'ticket': TicketIcon,
+  'search': SearchIcon
 };
 
 export default NAME_TO_ICON_MAP;

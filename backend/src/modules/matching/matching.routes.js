@@ -8,9 +8,12 @@ router.use(protect);
 
 router.post('/match', startMatchRules, matchingController.startMatch);
 router.get('/my-room', matchingController.getMyRoom);
+router.get('/unreviewed-room', matchingController.getUnreviewedRoom);
 router.get('/vacant', matchingController.getVacantRooms);
 router.get('/:id', roomIdParamRules, matchingController.getRoom);
 router.post('/:id/join', roomIdParamRules, matchingController.joinRoom);
 router.post('/:id/leave', roomIdParamRules, matchingController.leave);
+router.post('/:id/ready', roomIdParamRules, matchingController.setReadyToChat);
+router.post('/:id/leave-intro', roomIdParamRules, matchingController.leaveIntro);
 
 module.exports = router;

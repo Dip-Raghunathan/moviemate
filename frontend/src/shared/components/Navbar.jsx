@@ -5,6 +5,7 @@ import Avatar from './ui/Avatar';
 import Badge from './ui/Badge';
 import { PremiumIcon } from './icons/IconComponents';
 import * as socialService from '../../services/socialService';
+import io from 'socket.io-client';
 
 // Film reel icon SVG
 const FilmIcon = () => (
@@ -20,8 +21,8 @@ const FilmIcon = () => (
 const NAV_LINKS = [
   { to: '/dashboard', label: 'Find Match' },
   { to: '/search',    label: 'Search Catalog' },
-  { to: '/communities', label: 'Communities' },
-  { to: '/events', label: 'Events' },
+  { to: '/discover',  label: 'Discover' },
+  { to: '/watchlist', label: 'Watchlist' },
   { to: '/profile',   label: 'Profile' },
 ];
 
@@ -80,8 +81,41 @@ const Navbar = ({ rightContent }) => {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 5000);
-    return () => clearInterval(interval);
+
+    const socketUrl = import.meta.env.VITE_API_URL 
+      ? new URL(import.meta.env.VITE_API_URL).origin 
+      : (window.location.port === '3000' ? 'http://localhost:5000' : window.location.origin);
+      
+    const socket = io(socketUrl, {
+      transports: ['websocket'],
+      withCredentials: true
+    });
+
+    socket.on('connect', () => {
+      socket.emit('join_user_notifications', user.id || user._id);
+    });
+
+    socket.on('notification_received', (newNotification) => {
+      setNotifications(prev => {
+        if (prev.some(n => n._id === newNotification._id)) return prev;
+        return [newNotification, ...prev];
+      });
+    });
+
+    socket.on('friend_request_received', (newRequest) => {
+      setPendingRequests(prev => {
+        if (prev.some(r => r._id === newRequest._id)) return prev;
+        return [newRequest, ...prev];
+      });
+    });
+
+    socket.on('friend_request_accepted_received', () => {
+      fetchData();
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, [user]);
 
   const handleRequestResponse = async (requestId, accept) => {
@@ -211,7 +245,13 @@ const Navbar = ({ rightContent }) => {
                 {/* ── Notification Dropdown ── */}
                 <div ref={notificationRef} style={{ position: 'relative' }}>
                   <button
-                    onClick={() => setNotificationOpen(o => !o)}
+                    onClick={() => {
+                      if (window.innerWidth < 768) {
+                        navigate('/notifications');
+                      } else {
+                        setNotificationOpen(o => !o);
+                      }
+                    }}
                     style={{
                       position: 'relative',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -336,21 +376,42 @@ const Navbar = ({ rightContent }) => {
                                     </div>
                                   )}
                                 </div>
-                                <div style={{ flex: 1 }}>
+                                <div style={{ flex: 1, minWidth: 0 }}>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                                    <p style={{ fontSize: '0.8125rem', fontWeight: notif.status === 'unread' ? 600 : 500, color: '#f0f0fa' }}>
+                                    <p style={{ fontSize: '0.8125rem', fontWeight: notif.status === 'unread' ? 700 : 500, color: '#f0f0fa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>
                                       {notif.title}
                                     </p>
                                     <span style={{ fontSize: '0.625rem', color: '#6b6b85' }}>
                                       {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                   </div>
-                                  <p style={{ fontSize: '0.75rem', color: '#a8a8c0', marginTop: 2 }}>
+                                  <p style={{ fontSize: '0.75rem', color: '#a8a8c0', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                     {notif.body}
                                   </p>
                                 </div>
                               </div>
                             ))}
+
+                            <Link
+                              to="/notifications"
+                              onClick={() => setNotificationOpen(false)}
+                              style={{
+                                display: 'block',
+                                textAlign: 'center',
+                                padding: '10px 0 2px',
+                                borderTop: '1px solid rgba(255,255,255,0.08)',
+                                color: '#ff6b7a',
+                                fontSize: '0.8rem',
+                                fontWeight: 700,
+                                textDecoration: 'none',
+                                transition: 'color 150ms ease',
+                                marginTop: 8
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.color = '#e8102a'}
+                              onMouseLeave={e => e.currentTarget.style.color = '#ff6b7a'}
+                            >
+                              View All Notifications
+                            </Link>
                           </>
                         )}
                       </div>
@@ -578,6 +639,32 @@ const Navbar = ({ rightContent }) => {
                       {label}
                     </Link>
                   ))}
+                  <Link
+                    to="/notifications"
+                    style={{
+                      padding: '12px 16px',
+                      borderRadius: 12,
+                      fontSize: '0.9375rem',
+                      fontWeight: 500,
+                      color: isActive('/notifications') ? '#f0f0fa' : '#a8a8c0',
+                      background: isActive('/notifications') ? 'rgba(255,255,255,0.07)' : 'transparent',
+                      textDecoration: 'none',
+                      transition: 'all 150ms ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8
+                    }}
+                  >
+                    <PremiumIcon name="star" size={16} color="currentColor" /> Notifications
+                    {unreadCount > 0 && (
+                      <span style={{
+                        marginLeft: 'auto',
+                        background: '#e8102a', color: 'white',
+                        fontSize: '10px', fontWeight: 'bold',
+                        padding: '2px 8px', borderRadius: 9999
+                      }}>{unreadCount}</span>
+                    )}
+                  </Link>
                   <Link
                     to="/sessions"
                     style={{

@@ -20,6 +20,9 @@ router.delete('/sessions/:sessionId', protect, authController.revokeSession);
 router.delete('/sessions', protect, authController.revokeAllOtherSessions);
 
 router.post('/forgot-password', forgotPasswordRules, authController.forgotPassword);
-router.post('/reset-password/:token', resetPasswordRules, authController.resetPassword);
+router.post('/reset-password', authController.resetPassword);
+router.post('/verify-email', authController.verifyEmail);
+router.post('/resend-otp', authController.resendOTP);
+router.post('/verify-reset-otp', authController.verifyResetOTP);
 
 module.exports = router;

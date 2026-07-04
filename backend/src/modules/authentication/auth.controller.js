@@ -26,8 +26,14 @@ class AuthController {
       const ip = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
       const userAgent = req.headers['user-agent'] || '';
       
-      const { user, accessToken, refreshToken } = await authService.signup(req.body, ip, userAgent);
+      const result = await authService.signup(req.body, ip, userAgent);
       
+      if (result.requiresVerification) {
+        res.statusCode = 201;
+        return res.success({ requiresVerification: true, email: result.email }, 'Verification OTP sent');
+      }
+
+      const { user, accessToken, refreshToken } = result;
       setRefreshCookie(res, refreshToken);
       const response = AuthResponseDTO.from(user, accessToken);
       res.statusCode = 201;
@@ -144,7 +150,7 @@ class AuthController {
   forgotPassword = async (req, res, next) => {
     try {
       await authService.forgotPassword(req.body.email);
-      return res.success(null, 'If an account with that email exists, a reset link has been sent.');
+      return res.success(null, 'If an account with that email exists, an OTP code has been sent.');
     } catch (error) {
       next(error);
     }
@@ -152,14 +158,39 @@ class AuthController {
 
   resetPassword = async (req, res, next) => {
     try {
-      const { user, accessToken, refreshToken } = await authService.resetPassword(
-        req.params.token,
-        req.body.password
-      );
-      
-      setRefreshCookie(res, refreshToken);
-      const response = AuthResponseDTO.from(user, accessToken);
-      return res.success(response, 'Password reset successful');
+      const { email, otp, password } = req.body;
+      await authService.resetPasswordWithOTP(email, otp, password);
+      return res.success(null, 'Password reset successful');
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  verifyEmail = async (req, res, next) => {
+    try {
+      const { email, otp } = req.body;
+      await authService.verifyEmail(email, otp);
+      return res.success(null, 'Email verified successfully.');
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  resendOTP = async (req, res, next) => {
+    try {
+      const { email } = req.body;
+      await authService.resendVerificationOTP(email);
+      return res.success(null, 'OTP resent successfully.');
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  verifyResetOTP = async (req, res, next) => {
+    try {
+      const { email, otp } = req.body;
+      await authService.verifyResetOTP(email, otp);
+      return res.success(null, 'OTP verified successfully.');
     } catch (error) {
       next(error);
     }

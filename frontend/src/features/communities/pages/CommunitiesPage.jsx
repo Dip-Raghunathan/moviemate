@@ -11,9 +11,9 @@ const CHANNELS = [
   { id: 'general', name: 'general', label: 'General Discussion' },
   { id: 'reviews', name: 'reviews', label: 'Movie Reviews & Ratings' },
   { id: 'spoilers', name: 'spoilers', label: 'Spoiler Alerts!' },
+  { id: 'polls', name: 'movie-polls', label: 'Community Movie Voting Polls' },
   { id: 'memes', name: 'memes', label: 'Film Memes & Fun' },
   { id: 'events', name: 'events', label: 'Local Screening Meetups' },
-  { id: 'voice', name: 'voice-chat', label: 'Live Co-Watching' },
 ];
 
 const CommunitiesPage = () => {
@@ -276,6 +276,60 @@ const CommunitiesPage = () => {
                       You are viewing this channel as a guest. Click join in the top right to start posting reviews, sharing memes, and co-watching shows!
                     </p>
                   </div>
+                ) : activeChannel.id === 'polls' ? (
+                  <div style={{ flex: 1, padding: 12, overflowY: 'auto' }}>
+                    <div style={{
+                      background: 'linear-gradient(135deg, rgba(232,16,42,0.1) 0%, rgba(8,8,16,0.6) 100%)',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                      borderRadius: 20,
+                      padding: 24,
+                      marginBottom: 20
+                    }}>
+                      <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#f0f0fa', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <PremiumIcon name="popcorn" size={20} color="#ff6b7a" /> Weekly Community Choice Watch Poll
+                      </h4>
+                      <p style={{ fontSize: '0.8rem', color: '#a8a8c0', marginBottom: 24 }}>
+                        Vote on which movie we should match and watch together this weekend at local theaters in your city!
+                      </p>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                        {[
+                          { id: 1, title: 'Deadpool & Wolverine', votes: 42, color: '#ff6b7a' },
+                          { id: 2, title: 'Dune: Part Two', votes: 28, color: '#3b82f6' },
+                          { id: 3, title: 'Inside Out 2', votes: 15, color: '#10b981' }
+                        ].map((movieOption) => {
+                          const totalVotes = 85;
+                          const percentage = Math.round((movieOption.votes / totalVotes) * 100);
+                          return (
+                            <div key={movieOption.id} style={{ position: 'relative' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 700, color: '#f0f0fa', marginBottom: 8 }}>
+                                <span>{movieOption.title}</span>
+                                <span style={{ color: movieOption.color }}>{percentage}% ({movieOption.votes} votes)</span>
+                              </div>
+                              <div style={{ height: 10, background: 'rgba(255,255,255,0.04)', borderRadius: 5, overflow: 'hidden' }}>
+                                <div style={{ height: '100%', width: `${percentage}%`, background: movieOption.color, borderRadius: 5, transition: 'width 0.4s ease' }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div style={{ marginTop: 32, display: 'flex', gap: 12 }}>
+                        <button
+                          onClick={() => window.location.href = '/dashboard?movie=Deadpool%20%26%20Wolverine'}
+                          style={{
+                            padding: '10px 20px',
+                            background: 'linear-gradient(135deg, #e8102a, #ff3a4a)',
+                            border: 'none', borderRadius: 12,
+                            color: 'white', fontWeight: 700, fontSize: '0.8rem',
+                            cursor: 'pointer', transition: 'all 200ms ease',
+                          }}
+                        >
+                          Match For winning movie ➔
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 ) : messages.length === 0 ? (
                   <div className="flex-1 flex flex-col items-center justify-center text-center text-slate-500 text-xs gap-2">
                     <span>Welcome to the beginning of the #{activeChannel.id} channel!</span>
@@ -402,7 +456,7 @@ const CommunitiesPage = () => {
               </div>
 
               {/* Chat Input */}
-              {communityData?.isMember && (
+              {communityData?.isMember && activeChannel.id !== 'polls' && (
                 <form onSubmit={handleSend} className="p-4 border-t border-white/[0.03]">
                   <div className="relative flex items-center">
                     <input

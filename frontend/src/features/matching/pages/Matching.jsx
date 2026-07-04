@@ -5,6 +5,7 @@ import * as roomService from '../../../services/roomService';
 import Spinner from '../../../shared/components/ui/Spinner';
 import Badge from '../../../shared/components/ui/Badge';
 import { PremiumIcon } from '../../../shared/components/icons/IconComponents';
+import { useAuth } from '../../../core/contexts/AuthContext';
 
 // ── Radar Animation ────────────────────────────────────────────────────────────
 const RadarAnimation = () => (
@@ -86,10 +87,14 @@ const Confetti = () => {
 const Matching = () => {
   const { state }   = useLocation();
   const navigate    = useNavigate();
+  const { user }    = useAuth();
   const [room,    setRoom]     = useState(null);
   const [searching, setSearching] = useState(true);
   const [error,     setError]    = useState('');
   const [showConfetti, setShowConfetti] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [readyLoading, setReadyLoading] = useState(false);
+  const wasMatchedRef = useRef(false);
   const pollRef     = useRef(null);
   const roomId      = state?.roomId;
 
@@ -100,8 +105,16 @@ const Matching = () => {
 
     const poll = async () => {
       try {
-        const { room } = await roomService.getRoom(roomId);
-        setRoom(room);
+        const { room: updatedRoom } = await roomService.getRoom(roomId);
+        if (updatedRoom) {
+          const isMatchedNow = updatedRoom.members.length === updatedRoom.capacity;
+          if (wasMatchedRef.current && !isMatchedNow) {
+            setAlertMessage('Your companion left before chat started.');
+            setTimeout(() => setAlertMessage(''), 5000);
+          }
+          wasMatchedRef.current = isMatchedNow;
+          setRoom(updatedRoom);
+        }
       } catch (err) {
         setError(err.response?.data?.message || 'Could not load room.');
       }
@@ -117,6 +130,15 @@ const Matching = () => {
       setTimeout(() => setShowConfetti(false), 4000);
     }
   }, [room, searching]);
+
+  useEffect(() => {
+    if (room && room.members && room.members.length === room.capacity) {
+      const allReady = room.members.every(m => m.readyToChat === true);
+      if (allReady) {
+        navigate(`/chat/${room.id}`);
+      }
+    }
+  }, [room, navigate]);
 
   if (error) {
     return (
@@ -147,9 +169,28 @@ const Matching = () => {
       </div>
 
       <div className="section-container" style={{ paddingTop: 120, paddingBottom: 64, position: 'relative', zIndex: 1 }}>
-        {(searching || !room) ? (
+        {(searching || !room || room.members.length < room.capacity) ? (
           /* ── Searching State ── */
           <div style={{ textAlign: 'center', maxWidth: 520, margin: '0 auto', animation: 'fadeIn 0.6s ease forwards' }}>
+            {alertMessage && (
+              <div style={{
+                background: 'rgba(239,68,68,0.1)',
+                border: '1px solid rgba(239,68,68,0.25)',
+                borderRadius: 14,
+                padding: '12px 16px',
+                color: '#f87171',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                marginBottom: 20,
+                animation: 'slideUp 0.3s ease-out',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8
+              }}>
+                <PremiumIcon name="warning" size={16} color="#f87171" />
+                {alertMessage}
+              </div>
+            )}
             <RadarAnimation />
             <h2 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '2rem', color: '#f0f0fa', letterSpacing: '-0.03em', marginBottom: 12 }}>
               Scanning theaters...
@@ -177,139 +218,159 @@ const Matching = () => {
             </div>
           </div>
         ) : (
-          /* ── Match Found State ── */
-          <div style={{ textAlign: 'center', maxWidth: 600, margin: '0 auto', animation: 'scaleIn 0.6s cubic-bezier(0.16,1,0.3,1) forwards' }}>
-            {/* Celebration emoji */}
-            <div style={{ marginBottom: 16, animation: 'float 2s ease-in-out infinite' }}>
-              <PremiumIcon name="star" size={56} color="#f5a623" />
-            </div>
-
-            <h2 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 900, fontSize: 'clamp(2rem,5vw,2.8rem)', color: '#f0f0fa', letterSpacing: '-0.04em', marginBottom: 8 }}>
-              Match Found!
+          /* ── Match Introduction Screen (Match Found State) ── */
+          <div style={{ textAlign: 'center', maxWidth: 640, margin: '0 auto', animation: 'scaleIn 0.5s cubic-bezier(0.16,1,0.3,1) forwards' }}>
+            <h2 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 900, fontSize: '2.2rem', color: '#f0f0fa', letterSpacing: '-0.03em', marginBottom: 6 }}>
+              It's a Match!
             </h2>
-            <p style={{ color: '#6b6b85', marginBottom: 32 }}>
-              {room.status === 'full'
-                ? 'Your room is full. Time to enjoy the show!'
-                : `Waiting for ${room.capacity - room.memberCount} more companion${room.capacity - room.memberCount !== 1 ? 's' : ''}. You can join now and chat while you wait.`}
+            <p style={{ color: '#6b6b85', fontSize: '0.95rem', marginBottom: 32 }}>
+              Say hello to your companion for <strong style={{ color: '#ff6b7a' }}>{room.movie}</strong>
             </p>
 
-            {/* Room card */}
-            <div style={{
-              background: 'linear-gradient(135deg, rgba(232,16,42,0.1) 0%, rgba(14,14,28,0.98) 40%, rgba(245,166,35,0.05) 100%)',
-              border: '1px solid rgba(232,16,42,0.25)',
-              borderRadius: 24, padding: '28px',
-              boxShadow: '0 8px 40px rgba(0,0,0,0.5), 0 0 60px rgba(232,16,42,0.08)',
-              marginBottom: 20, textAlign: 'left',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                    <h3 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1.5rem', color: '#f0f0fa', letterSpacing: '-0.02em' }}>
-                      Room #{room.id.slice(-4).toUpperCase()}
-                    </h3>
-                    <Badge variant={room.status === 'full' ? 'full' : 'open'} />
-                  </div>
-                  <p style={{ color: '#a8a8c0', fontSize: '0.9375rem', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <PremiumIcon name="movie" size={18} color="#a8a8c0" />
-                    {room.movie}
-                  </p>
-                  <p style={{ color: '#6b6b85', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <PremiumIcon name="location" size={16} color="#6b6b85" />
-                    {room.cinema} · {room.date} · {room.time}
-                  </p>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <p style={{ fontSize: '0.78rem', color: '#4a4a60', marginBottom: 4, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Members</p>
-                  <p style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1.75rem', color: '#f0f0fa', lineHeight: 1 }}>
-                    {room.memberCount}<span style={{ fontSize: '1rem', color: '#4a4a60' }}>/{room.capacity}</span>
-                  </p>
-                </div>
-              </div>
+            {/* Split cards for the two members */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20, marginBottom: 32 }}>
+              {room.members.map((member, idx) => {
+                const memberUserId = member.user?._id || member.user?.id || member.user;
+                const activeUserId = user?._id || user?.id;
+                const isMe = memberUserId && activeUserId && memberUserId.toString() === activeUserId.toString();
+                const initials = (member.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                
+                return (
+                  <div key={idx} style={{
+                    background: 'rgba(255,255,255,0.03)',
+                    border: isMe ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(232,16,42,0.2)',
+                    borderRadius: 24,
+                    padding: 24,
+                    textAlign: 'left',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+                    position: 'relative'
+                  }}>
+                    {/* Status badge */}
+                    {member.readyToChat && (
+                      <span style={{
+                        position: 'absolute', top: 16, right: 16,
+                        background: 'rgba(16,185,129,0.12)', color: '#10b981', border: '1px solid rgba(16,185,129,0.25)',
+                        fontSize: '0.68rem', fontWeight: 800, padding: '3px 8px', borderRadius: 8, textTransform: 'uppercase'
+                      }}>
+                        Ready
+                      </span>
+                    )}
 
-              {/* Member seat indicators */}
-              <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-                {Array.from({ length: room.capacity }).map((_, i) => (
-                  <div key={i} style={{
-                    flex: 1, height: 6, borderRadius: 9999,
-                    background: i < room.memberCount
-                      ? 'linear-gradient(90deg, #e8102a, #ff4b5e)'
-                      : 'rgba(255,255,255,0.08)',
-                    transition: 'background 300ms ease',
-                    boxShadow: i < room.memberCount ? '0 0 8px rgba(232,16,42,0.4)' : 'none',
-                  }} />
-                ))}
-              </div>
-
-              {/* Tags */}
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 9999, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', fontSize: '0.8rem', fontWeight: 600, color: '#a8a8c0' }}>
-                  <PremiumIcon name={room.matchType === 'solo' ? 'user' : 'group'} size={14} color="#a8a8c0" />
-                  {room.matchType === 'solo' ? 'Solo Match' : 'Group Match'}
-                </span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 9999, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', fontSize: '0.8rem', fontWeight: 600, color: '#a8a8c0' }}>
-                  <PremiumIcon name={room.intent === 'date' ? 'romance' : 'movie'} size={14} color="#a8a8c0" />
-                  {room.intent.charAt(0).toUpperCase() + room.intent.slice(1)}
-                </span>
-                {room.womenOnly && (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 9999, background: 'rgba(232,16,42,0.1)', border: '1px solid rgba(232,16,42,0.2)', fontSize: '0.8rem', fontWeight: 600, color: '#ff6b7a' }}>
-                    <PremiumIcon name="user" size={14} color="#ff6b7a" />
-                    Women Only
-                  </span>
-                )}
-              </div>
-
-              {/* Matched Companions */}
-              <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                <h4 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 700, fontSize: '0.85rem', color: '#6b6b85', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Matched Companions</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {room.members?.map((member, idx) => {
-                    if (!member.user) return null;
-                    return (
-                      <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
-                        <div style={{ position: 'relative' }}>
-                          <img 
-                            src={member.user.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.user.name)}&background=random`} 
-                            alt={member.user.name} 
-                            style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)' }} 
-                          />
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontWeight: 700, color: '#f0f0fa', fontSize: '0.88rem' }}>{member.user.name}</span>
-                            {member.compatibility && (
-                              <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '1px 6px', borderRadius: 6, background: member.compatibility.score >= 80 ? 'rgba(16,185,129,0.1)' : 'rgba(59,130,246,0.1)', color: member.compatibility.score >= 80 ? '#10b981' : '#3b82f6', border: `1px solid ${member.compatibility.score >= 80 ? 'rgba(16,185,129,0.2)' : 'rgba(59,130,246,0.2)'}` }}>
-                                {member.compatibility.score}% Match
-                              </span>
-                            )}
-                          </div>
-                          {member.compatibility?.explanation && (
-                            <p style={{ fontSize: '0.75rem', color: '#6b6b85', margin: '2px 0 0', lineHeight: 1.3 }}>
-                              {member.compatibility.explanation}
-                            </p>
-                          )}
-                        </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+                      {/* Avatar */}
+                      <div style={{
+                        width: 48, height: 48, borderRadius: '50%',
+                        background: isMe ? 'rgba(255,255,255,0.08)' : 'rgba(232,16,42,0.15)',
+                        border: isMe ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(232,16,42,0.3)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontWeight: 700, color: isMe ? '#f0f0fa' : '#ff6b7a', fontSize: '1rem'
+                      }}>
+                        {initials}
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
+                      <div>
+                        <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#f0f0fa', margin: 0 }}>
+                          {member.name || 'User'} {isMe && '(You)'}
+                        </h4>
+                        <p style={{ fontSize: '0.78rem', color: '#6b6b85', margin: 0 }}>
+                          {member.age ? `${member.age} yrs` : ''} · {member.gender?.charAt(0).toUpperCase() + member.gender?.slice(1)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div style={{ background: 'rgba(0,0,0,0.2)', padding: '14px 16px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.03)' }}>
+                      <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6b6b85', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>Introduction</p>
+                      <p style={{ fontSize: '0.85rem', color: '#a8a8c0', lineHeight: 1.45, margin: 0, fontStyle: 'italic' }}>
+                        "{member.introduction || 'Hi! Excited to watch this movie together.'}"
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
-            <button
-              id="join-room-btn"
-              className="btn btn-primary btn-xl"
-              onClick={() => navigate(`/chat/${room.id}`)}
-              style={{ borderRadius: 9999, width: '100%', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-            >
-              <PremiumIcon name={room.status === 'full' ? 'movie' : 'message'} size={20} color="white" />
-              {room.status === 'full' ? 'Enter Room' : 'Join Room & Chat'}
-            </button>
+            {/* Action buttons */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 360, margin: '0 auto' }}>
+              <button
+                type="button"
+                disabled={readyLoading || room.members.find(m => {
+                  const mUserId = m.user?._id || m.user?.id || m.user;
+                  const activeUserId = user?._id || user?.id;
+                  return mUserId && activeUserId && mUserId.toString() === activeUserId.toString();
+                })?.readyToChat}
+                onClick={async () => {
+                  setReadyLoading(true);
+                  try {
+                    await roomService.readyForChat(room.id || room._id);
+                    const { room: updatedRoom } = await roomService.getRoom(room.id || room._id);
+                    setRoom(updatedRoom);
+                  } catch (err) {
+                    setError('Could not update status. Please try again.');
+                  } finally {
+                    setReadyLoading(false);
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  borderRadius: 9999,
+                  background: 'linear-gradient(135deg, #e8102a, #ff4b5e)',
+                  border: 'none',
+                  color: 'white',
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  cursor: 'pointer',
+                  transition: 'all 200ms ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  opacity: room.members.find(m => {
+                    const mUserId = m.user?._id || m.user?.id || m.user;
+                    const activeUserId = user?._id || user?.id;
+                    return mUserId && activeUserId && mUserId.toString() === activeUserId.toString();
+                  })?.readyToChat ? 0.6 : 1
+                }}
+              >
+                {room.members.find(m => {
+                  const mUserId = m.user?._id || m.user?.id || m.user;
+                  const activeUserId = user?._id || user?.id;
+                  return mUserId && activeUserId && mUserId.toString() === activeUserId.toString();
+                })?.readyToChat ? (
+                  <>
+                    <Spinner size="sm" color="white" />
+                    Waiting for companion...
+                  </>
+                ) : (
+                  'Start Chat'
+                )}
+              </button>
 
-            <Link to="/dashboard" style={{ display: 'block', marginTop: 16, color: '#6b6b85', fontSize: '0.875rem', textDecoration: 'none', transition: 'color 150ms ease' }}
-              onMouseEnter={e => e.currentTarget.style.color = '#a8a8c0'}
-              onMouseLeave={e => e.currentTarget.style.color = '#6b6b85'}>
-              ← Find a different match
-            </Link>
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await roomService.leaveIntro(room.id || room._id);
+                    navigate('/dashboard');
+                  } catch (err) {
+                    setError('Could not leave match. Please try again.');
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: 9999,
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: '#a8a8c0',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  transition: 'all 200ms ease'
+                }}
+              >
+                Leave Match
+              </button>
+            </div>
           </div>
         )}
       </div>

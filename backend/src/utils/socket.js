@@ -19,6 +19,10 @@ module.exports = {
         socket.leave(roomId);
       });
 
+      socket.on('join_user_notifications', (userId) => {
+        socket.join(`user_${userId}`);
+      });
+
       socket.on('disconnect', () => {
       });
     });

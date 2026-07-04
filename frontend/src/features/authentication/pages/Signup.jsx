@@ -103,7 +103,7 @@ const Signup = () => {
     if (!validateStep()) return;
     setLoading(true);
     try {
-      await signup({
+      const res = await signup({
         name: form.name,
         email: form.email,
         password: form.password,
@@ -111,7 +111,11 @@ const Signup = () => {
         gender: form.gender,
         favoriteGenres: genres,
       });
-      navigate('/dashboard');
+      if (res?.requiresVerification) {
+        navigate(`/verify-email?email=${encodeURIComponent(form.email)}`);
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Signup failed. Please try again.');
     } finally {

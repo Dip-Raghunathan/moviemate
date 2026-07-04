@@ -1,5 +1,6 @@
 const socialRepository = require('./social.repository');
 const Notification = require('../../database/models/Notification');
+const { sendNotification } = require('../../utils/notificationHelper');
 const { BadRequestError, NotFoundError } = require('../../utils/errors');
 
 class SocialService {
@@ -35,7 +36,7 @@ class SocialService {
       const friendship = await socialRepository.createFriendship(senderId, receiverId);
       
       // Notify receiver that friend request was accepted
-      await Notification.create({
+      await sendNotification({
         recipient: receiverId,
         sender: senderId,
         type: 'friend_request',
@@ -50,7 +51,7 @@ class SocialService {
     const request = await socialRepository.createFriendRequest(senderId, receiverId);
 
     // Create notification for recipient
-    await Notification.create({
+    await sendNotification({
       recipient: receiverId,
       sender: senderId,
       type: 'friend_request',
@@ -79,7 +80,7 @@ class SocialService {
       const friendship = await socialRepository.createFriendship(request.sender, request.receiver);
       
       // Notify sender that their request was accepted
-      await Notification.create({
+      await sendNotification({
         recipient: request.sender,
         sender: userId,
         type: 'friend_request',
@@ -116,7 +117,7 @@ class SocialService {
     const follow = await socialRepository.createFollower(followeeId, userId);
 
     // Notify followee
-    await Notification.create({
+    await sendNotification({
       recipient: followeeId,
       sender: userId,
       type: 'friend_request',
@@ -172,6 +173,19 @@ class SocialService {
       { recipient: userId, status: 'unread' },
       { status: 'read' }
     );
+    return { success: true };
+  }
+
+  async deleteNotification(notificationId, userId) {
+    const result = await Notification.deleteOne({ _id: notificationId, recipient: userId });
+    if (result.deletedCount === 0) {
+      throw new NotFoundError('Notification not found', 'NOTIFICATION_NOT_FOUND');
+    }
+    return { success: true };
+  }
+
+  async clearAllNotifications(userId) {
+    await Notification.deleteMany({ recipient: userId });
     return { success: true };
   }
 }

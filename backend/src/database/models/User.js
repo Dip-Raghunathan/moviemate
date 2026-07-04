@@ -35,6 +35,11 @@ const userSchema = new mongoose.Schema(
       enum: ['male', 'female'],
       required: [true, 'Gender is required'],
     },
+    city: {
+      type: String,
+      trim: true,
+      default: 'Delhi',
+    },
     favoriteGenres: {
       type: [String],
       default: [],
@@ -112,6 +117,26 @@ const userSchema = new mongoose.Schema(
       type: Date,
       select: false,
     },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    verificationOTP: {
+      type: String,
+      select: false,
+    },
+    otpExpiry: {
+      type: Date,
+      select: false,
+    },
+    resetOTP: {
+      type: String,
+      select: false,
+    },
+    resetOTPExpiry: {
+      type: Date,
+      select: false,
+    },
   },
   { timestamps: true }
 );
@@ -154,6 +179,7 @@ userSchema.methods.toSafeObject = function () {
     email: this.email,
     age: this.age,
     gender: this.gender,
+    city: this.city || 'Delhi',
     favoriteGenres: this.favoriteGenres,
     profilePicture: this.profilePicture,
     moviesAttended: this.moviesAttended,
@@ -161,6 +187,7 @@ userSchema.methods.toSafeObject = function () {
     womenOnlyMode: this.womenOnlyMode,
     phone: this.phone || '',
     isEmailVerified: this.isEmailVerified,
+    isVerified: this.isVerified,
     isPhoneVerified: this.isPhoneVerified,
     profile: this.profile,
     privacy: this.privacy || {
