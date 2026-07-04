@@ -626,8 +626,12 @@ const Dashboard = () => {
 
   const proceedWithIntro = async (isSkipped) => {
     setShowIntroDialog(false);
+<<<<<<< HEAD
     const defaultIntro = `Hi, I'm ${user?.name || 'User'}. Excited to watch this movie together.`;
     const finalIntro = isSkipped ? defaultIntro : (introText.trim() || defaultIntro);
+=======
+    const finalIntro = isSkipped ? 'Hi! Excited to watch this movie together.' : introText.trim();
+>>>>>>> f5ebda0e1812514fee77bf0df8348ec57f9ce799
     
     setLoading(true);
     try {
@@ -635,7 +639,11 @@ const Dashboard = () => {
         await roomService.joinRoom(targetRoomToJoin, finalIntro);
         navigate('/matching', { state: { roomId: targetRoomToJoin } });
       } else {
+<<<<<<< HEAD
         const res = await roomService.startMatch({
+=======
+        const { room } = await roomService.startMatch({
+>>>>>>> f5ebda0e1812514fee77bf0df8348ec57f9ce799
           movie: form.movie,
           cinema: form.cinema,
           city: form.city,
@@ -646,7 +654,10 @@ const Dashboard = () => {
           womenOnly: showWomenOnlyToggle ? womenOnly : false,
           introduction: finalIntro
         });
+<<<<<<< HEAD
         const room = res.room;
+=======
+>>>>>>> f5ebda0e1812514fee77bf0df8348ec57f9ce799
         navigate('/matching', { state: { roomId: room.id || room._id } });
       }
     } catch (err) {
@@ -1651,7 +1662,11 @@ const Dashboard = () => {
               <textarea
                 rows="3"
                 maxLength={100}
+<<<<<<< HEAD
                 placeholder={`Hi, I'm ${user?.name || 'User'}. Big fan of action movies. Excited to watch this together!`}
+=======
+                placeholder="Hi, I'm Dip. Big fan of action movies. Excited to watch this together!"
+>>>>>>> f5ebda0e1812514fee77bf0df8348ec57f9ce799
                 value={introText}
                 onChange={(e) => setIntroText(e.target.value)}
                 style={{
