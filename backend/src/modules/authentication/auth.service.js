@@ -428,16 +428,44 @@ class AuthService {
     return { success: true };
   }
 
-  async sendVerificationEmail(toEmail, otp, userName) {
+  async sendEmail(toEmail, subject, htmlContent) {
+    const resendApiKey = process.env.RESEND_API_KEY || env.RESEND_API_KEY;
+    if (resendApiKey) {
+      let fromEmail = 'verify@philixmate.in';
+      if (process.env.SMTP_FROM && !process.env.SMTP_FROM.includes('no-reply@philixmate.app')) {
+        fromEmail = process.env.SMTP_FROM;
+      } else if (env.SMTP.FROM && !env.SMTP.FROM.includes('no-reply@philixmate.app')) {
+        fromEmail = env.SMTP.FROM;
+      }
+
+      console.log(`[RESEND] Sending email via Resend API to: ${toEmail} from: ${fromEmail}`);
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${resendApiKey}`
+        },
+        body: JSON.stringify({
+          from: fromEmail,
+          to: toEmail,
+          subject: subject,
+          html: htmlContent
+        })
+      });
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error(`Resend API failed: ${errText}`);
+        throw new Error(`Resend API failed: ${errText}`);
+      }
+      return await response.json();
+    }
+
+    // Fallback to Nodemailer SMTP
     let user = env.SMTP.USER;
     let pass = env.SMTP.PASS;
     let host = env.SMTP.HOST;
     let port = env.SMTP.PORT;
     let from = env.SMTP.FROM;
-
-    console.log('\n==================================================');
-    console.log(`[DEMO EMAIL] Verification OTP for ${toEmail}: ${otp}`);
-    console.log('==================================================\n');
 
     if (!user || !pass) {
       try {
@@ -448,7 +476,7 @@ class AuthService {
         port = 587;
         from = `"PhilixMate Team" <${testAccount.user}>`;
       } catch (err) {
-        console.error('Failed to create ethereal test email account, logging code only.');
+        console.error('Failed to create Ethereal account, logging code only.');
         return;
       }
     }
@@ -462,6 +490,23 @@ class AuthService {
         rejectUnauthorized: false
       }
     });
+
+    const info = await transporter.sendMail({
+      from,
+      to: toEmail,
+      subject,
+      html: htmlContent,
+    });
+
+    if (host === 'smtp.ethereal.email') {
+      console.log(`[Ethereal Preview URL]: ${nodemailer.getTestMessageUrl(info)}`);
+    }
+  }
+
+  async sendVerificationEmail(toEmail, otp, userName) {
+    console.log('\n==================================================');
+    console.log(`[DEMO EMAIL] Verification OTP for ${toEmail}: ${otp}`);
+    console.log('==================================================\n');
 
     const html = `
       <div style="font-family: 'Outfit', 'Inter', Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #05050a; color: #f0f0fa; padding: 40px 30px; border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 12px 32px rgba(0,0,0,0.4);">
@@ -478,52 +523,13 @@ class AuthService {
       </div>
     `;
 
-    const info = await transporter.sendMail({
-      from,
-      to: toEmail,
-      subject: 'Verify your PhilixMate Account',
-      html,
-    });
-
-    if (host === 'smtp.ethereal.email') {
-      console.log(`[Ethereal Preview URL]: ${nodemailer.getTestMessageUrl(info)}`);
-    }
+    await this.sendEmail(toEmail, 'Verify your PhilixMate Account', html);
   }
 
   async sendResetOTPEmail(toEmail, otp, userName) {
-    let user = env.SMTP.USER;
-    let pass = env.SMTP.PASS;
-    let host = env.SMTP.HOST;
-    let port = env.SMTP.PORT;
-    let from = env.SMTP.FROM;
-
     console.log('\n==================================================');
     console.log(`[DEMO EMAIL] Password Reset OTP for ${toEmail}: ${otp}`);
     console.log('==================================================\n');
-
-    if (!user || !pass) {
-      try {
-        const testAccount = await nodemailer.createTestAccount();
-        user = testAccount.user;
-        pass = testAccount.pass;
-        host = 'smtp.ethereal.email';
-        port = 587;
-        from = `"PhilixMate Team" <${testAccount.user}>`;
-      } catch (err) {
-        console.error('Failed to create ethereal test email account, logging code only.');
-        return;
-      }
-    }
-
-    const transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465,
-      auth: { user, pass },
-      tls: {
-        rejectUnauthorized: false
-      }
-    });
 
     const html = `
       <div style="font-family: 'Outfit', 'Inter', Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #05050a; color: #f0f0fa; padding: 40px 30px; border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 12px 32px rgba(0,0,0,0.4);">
@@ -540,16 +546,7 @@ class AuthService {
       </div>
     `;
 
-    const info = await transporter.sendMail({
-      from,
-      to: toEmail,
-      subject: 'Reset Your PhilixMate Password',
-      html,
-    });
-
-    if (host === 'smtp.ethereal.email') {
-      console.log(`[Ethereal Preview URL]: ${nodemailer.getTestMessageUrl(info)}`);
-    }
+    await this.sendEmail(toEmail, 'Reset Your PhilixMate Password', html);
   }
 }
 

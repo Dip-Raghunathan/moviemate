@@ -61,4 +61,4 @@ const startWatchlistReminders = () => {
   setTimeout(checkWatchlistReminders, 10 * 1000);
 };
 
-module.exports = { startWatchlistReminders };
+module.exports = { startWatchlistReminders, checkWatchlistReminders };

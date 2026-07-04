@@ -29,4 +29,25 @@ router.use('/billing', billingRouter);
 router.use('/watchlist', watchlistRouter);
 router.use('/discover', discoverRouter);
 
+// Serverless Cron Route for Watchlist Reminders
+const { checkWatchlistReminders } = require('../utils/watchlistJob');
+router.get('/cron/watchlist-reminders', async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      return res.status(401).json({
+        status: 'fail',
+        message: 'Unauthorized'
+      });
+    }
+    await checkWatchlistReminders();
+    return res.status(200).json({
+      status: 'success',
+      message: 'Watchlist reminders executed successfully'
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
