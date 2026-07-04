@@ -6,7 +6,7 @@ const { Friend } = require('../../database/models/Social');
 const Event = require('../../database/models/Event');
 const Room = require('../../database/models/Room');
 const { calculateCompatibility } = require('./matching.compatibility');
-const { BadRequestError, NotFoundError } = require('../../utils/errors');
+const { BadRequestError, NotFoundError, ForbiddenError } = require('../../utils/errors');
 const socketUtil = require('../../utils/socket');
 
 const normalizeName = (str) => {
@@ -159,19 +159,17 @@ class MatchingService {
     });
     const blockedUserIds = blockedRels.map(r => r.user1.toString() === user._id.toString() ? r.user2.toString() : r.user1.toString());
 
-    // 1. Query candidates for EXACT Match (Same Movie, Same City, Same Theatre, Same Date, Same Showtime)
-    const exactQuery = {
+    // 1. Query candidates for city-wide matches watching the same movie
+    const query = {
       movie: normalizedMovie,
-      cinema: normalizedCinema,
       city: normalizedCity,
       date,
-      showTiming,
       matchType,
       intent: normalizedIntent,
       status: { $in: ['Active', 'open'] }
     };
 
-    let candidateRooms = await Room.find(exactQuery).populate('members.user', 'name age gender isPro');
+    let candidateRooms = await Room.find(query).populate('members.user', 'name age gender isPro');
     const validCandidates = [];
 
     for (const r of candidateRooms) {
@@ -180,17 +178,50 @@ class MatchingService {
       }
     }
 
-    // Smart Age-Based Matching (Hierarchy: Same age, ±1, ±2, ±3)
-    let matchedRoom = null;
-    for (let ageDiff = 0; ageDiff <= 3; ageDiff++) {
-      matchedRoom = validCandidates.find(r => {
-        const maxDiff = Math.max(...r.members.map(m => m.user ? Math.abs(m.user.age - user.age) : 0));
-        return maxDiff === ageDiff;
-      });
-      if (matchedRoom) {
-        break;
+    // Rank candidates by Priority 1, 2, or 3, and calculate compatibility
+    const adjacency = {
+      'Morning Show': ['Morning Show', 'Afternoon Show'],
+      'Afternoon Show': ['Morning Show', 'Afternoon Show', 'Evening Show'],
+      'Evening Show': ['Afternoon Show', 'Evening Show', 'Night Show'],
+      'Night Show': ['Evening Show', 'Night Show']
+    };
+
+    const scoredRooms = [];
+    for (const r of validCandidates) {
+      const isSameTheatre = r.cinema === normalizedCinema;
+      const isSameShowTiming = r.showTiming === showTiming;
+      const isSimilarShowTiming = adjacency[showTiming]?.includes(r.showTiming) || isSameShowTiming;
+
+      let priority = 1; // Priority 3: any theatre, same city
+      if (isSameTheatre && isSameShowTiming) {
+        priority = 3; // Priority 1: same theatre, same show timing
+      } else if (!isSameTheatre && isSimilarShowTiming) {
+        priority = 2; // Priority 2: nearby theatre, similar timing
       }
+
+      let totalCompat = 0;
+      let count = 0;
+      for (const m of r.members) {
+        if (m.user) {
+          const compat = await calculateCompatibility(user, m.user, { movie: r.movie });
+          totalCompat += compat.score || 0;
+          count++;
+        }
+      }
+      const avgCompat = count > 0 ? (totalCompat / count) : 50;
+
+      scoredRooms.push({ room: r, priority, avgCompat });
     }
+
+    // Sort: highest priority DESC, then highest compatibility DESC
+    scoredRooms.sort((a, b) => {
+      if (b.priority !== a.priority) {
+        return b.priority - a.priority;
+      }
+      return b.avgCompat - a.avgCompat;
+    });
+
+    const matchedRoom = scoredRooms.length > 0 ? scoredRooms[0].room : null;
 
     if (matchedRoom) {
       const alreadyMember = matchedRoom.members.some((m) => m.user._id.toString() === user._id.toString());
@@ -228,6 +259,11 @@ class MatchingService {
       }
 
       matchedRoom.members.push({ user: user._id, gender: user.gender, introduction: matchPrefs.introduction || 'Hi! Excited to watch this movie together.' });
+      
+      const hasMinGroupMembers = matchedRoom.matchType === 'group' && matchedRoom.members.length >= 2;
+      const isSoloMatched = matchedRoom.matchType === 'solo' && matchedRoom.members.length >= 2;
+      const isMatched = isSoloMatched || hasMinGroupMembers;
+
       if (matchedRoom.members.length >= capacity) {
         matchedRoom.status = 'Full';
       }
@@ -236,21 +272,27 @@ class MatchingService {
       
       emitRoomUpdated(matchedRoom);
 
-      if (matchedRoom.status === 'Full') {
+      if (isMatched) {
+        const titleText = matchedRoom.members.length === capacity ? 'Group Complete!' : 'Match Unlocked!';
+        const bodyText = matchedRoom.members.length === capacity 
+          ? `🎉 All 4 members have joined the group for ${matchedRoom.movie}!`
+          : `🎉 Group chat is unlocked for ${matchedRoom.movie}! ${matchedRoom.members.length} members have joined.`;
+          
         await this._createWatchEventForRoom(matchedRoom);
-        await matchingRepository.createSystemMessage(matchedRoom._id, 'Room is now full. Enjoy the movie!');
+        
         for (const member of matchedRoom.members) {
           try {
+            const memberId = member.user._id || member.user;
             await sendNotification({
-              recipient: member.user._id,
+              recipient: memberId,
               type: 'match_found',
-              title: 'Match Found!',
-              body: `🎉 You have a new movie match for ${matchedRoom.movie} at ${matchedRoom.cinema}, ${matchedRoom.showTiming}.`,
+              title: titleText,
+              body: bodyText,
               deepLink: '/matching',
               priority: 'high',
             });
             await sendNotification({
-              recipient: member.user._id,
+              recipient: memberId,
               type: 'intro_received',
               title: 'Companion Introduction',
               body: 'A new movie companion introduction is available.',
@@ -262,7 +304,7 @@ class MatchingService {
           }
         }
       }
-      return { matched: true, room: matchedRoom };
+      return { matched: isMatched, room: matchedRoom };
     }
 
     // 2. If no compatible room exists, immediately create a new room and wait
@@ -385,6 +427,24 @@ class MatchingService {
         }
       } catch {}
       return { deleted: true };
+    }
+
+    // Host transfer logic: if creator/host leaves, assign ownership to oldest remaining member
+    if (room.createdBy && room.createdBy.toString() === userId.toString()) {
+      let oldestMember = null;
+      let maxAge = -1;
+      for (const m of room.members) {
+        const u = await User.findById(m.user);
+        if (u && u.age > maxAge) {
+          maxAge = u.age;
+          oldestMember = m.user;
+        }
+      }
+      if (oldestMember) {
+        room.createdBy = oldestMember;
+      } else if (room.members[0]) {
+        room.createdBy = room.members[0].user;
+      }
     }
 
     room.status = 'Active';
@@ -713,6 +773,49 @@ class MatchingService {
     emitRoomUpdated(room);
 
     return { left: true };
+  }
+
+  async updateRoom(roomId, userId, updates) {
+    const room = await Room.findById(roomId);
+    if (!room) {
+      throw new NotFoundError('Room not found', 'ROOM_NOT_FOUND');
+    }
+    if (room.createdBy.toString() !== userId.toString()) {
+      throw new ForbiddenError('Only the creator can edit this room', 'UNAUTHORIZED_ROOM_EDIT');
+    }
+    
+    if (updates.cinema) room.cinema = normalizeName(updates.cinema);
+    if (updates.movie) room.movie = normalizeName(updates.movie);
+    if (updates.date) room.date = updates.date;
+    if (updates.showTiming) {
+      room.showTiming = updates.showTiming;
+      room.time = getShowStartHour(updates.showTiming);
+    }
+    
+    await room.save();
+    emitRoomUpdated(room);
+    return room;
+  }
+
+  async deleteRoom(roomId, userId) {
+    const room = await Room.findById(roomId);
+    if (!room) {
+      throw new NotFoundError('Room not found', 'ROOM_NOT_FOUND');
+    }
+    if (room.createdBy.toString() !== userId.toString()) {
+      throw new ForbiddenError('Only the creator can delete this room', 'UNAUTHORIZED_ROOM_DELETE');
+    }
+    await matchingRepository.deleteRoomMessages(room._id);
+    await Room.findByIdAndDelete(room._id);
+    try {
+      const io = socketUtil.getIO();
+      if (io) {
+        io.to(room._id.toString()).emit('room_deleted', roomId);
+      }
+    } catch (err) {
+      console.error('Failed to emit room_deleted socket event:', err);
+    }
+    return { deleted: true };
   }
 }
 

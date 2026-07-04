@@ -492,6 +492,7 @@ const Dashboard = () => {
   const [showIntroDialog, setShowIntroDialog] = useState(false);
   const [introText, setIntroText] = useState('');
   const [targetRoomToJoin, setTargetRoomToJoin] = useState(null);
+  const [pendingCitySwitch, setPendingCitySwitch] = useState(null);
 
   const [recommendations, setRecommendations] = useState(null);
   const [stats, setStats] = useState(null);
@@ -580,6 +581,13 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchIntelAndVacant();
+
+    const params = new URLSearchParams(window.location.search);
+    const joinRoomId = params.get('joinRoom');
+    if (joinRoomId) {
+      handleJoinVacantRoom(joinRoomId);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
   }, []);
 
   useEffect(() => {
@@ -588,18 +596,60 @@ const Dashboard = () => {
 
   const isFemale = user?.gender === 'female';
   const showWomenOnlyToggle = isFemale && matchType === 'solo';
+  const hasActiveRoomInSelectedCity = activeRoom && activeRoom.city && activeRoom.city.toLowerCase() === selectedCity.toLowerCase();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm(f => {
-      const next = { ...f, [name]: value };
-      if (name === 'city') {
-        setSelectedCity(value);
-        localStorage.setItem('selected_city', value);
-        next.cinema = THEATRES_BY_CITY[value]?.[0] || '';
+    if (name === 'city') {
+      if (activeRoom) {
+        setPendingCitySwitch(value);
+        return;
       }
-      return next;
-    });
+      setSelectedCity(value);
+      localStorage.setItem('selected_city', value);
+      setForm(f => ({
+        ...f,
+        city: value,
+        cinema: THEATRES_BY_CITY[value]?.[0] || ''
+      }));
+      return;
+    }
+    setForm(f => ({ ...f, [name]: value }));
+  };
+
+  const handleConfirmCitySwitch = async () => {
+    if (!pendingCitySwitch) return;
+    const targetCity = pendingCitySwitch;
+    setPendingCitySwitch(null);
+    setLoading(true);
+    try {
+      if (activeRoom) {
+        await roomService.leaveRoom(activeRoom.id || activeRoom._id);
+      }
+      setActiveRoom(null);
+      setSelectedCity(targetCity);
+      localStorage.setItem('selected_city', targetCity);
+      setForm(f => ({
+        ...f,
+        city: targetCity,
+        cinema: THEATRES_BY_CITY[targetCity]?.[0] || ''
+      }));
+      await fetchVacantRoomsOnly(targetCity);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to switch city.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelCitySwitch = () => {
+    setPendingCitySwitch(null);
+    if (activeRoom) {
+      setForm(f => ({
+        ...f,
+        city: activeRoom.city || selectedCity
+      }));
+    }
   };
 
   const handleMatchTypeChange = (type) => {
@@ -1157,7 +1207,7 @@ const Dashboard = () => {
             <div style={{ display: 'flex', justifyContent: 'center', padding: '32px 0', background: 'rgba(255,255,255,0.02)', borderRadius: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
               <Spinner size="md" color="#e8102a" />
             </div>
-          ) : (vacantRooms.length === 0 && !activeRoom) ? (
+          ) : (vacantRooms.length === 0 && !hasActiveRoomInSelectedCity) ? (
             <div style={{ padding: '32px 24px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: 20, border: '1px solid rgba(255,255,255,0.06)' }}>
               <p style={{ color: '#6b6b85', fontSize: '0.9rem', margin: 0 }}>
                 No active vacant sessions currently. Use the form above to start a session!
@@ -1165,7 +1215,7 @@ const Dashboard = () => {
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(285px, 1fr))', gap: 24 }}>
-              {activeRoom && (
+              {hasActiveRoomInSelectedCity && (
                 <div
                   style={{
                     background: 'linear-gradient(135deg, rgba(232,16,42,0.15) 0%, rgba(8,8,16,0.65) 100%)',
@@ -1714,6 +1764,79 @@ const Dashboard = () => {
                 }}
               >
                 Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* City Switch Warning Modal */}
+      {pendingCitySwitch && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(5,5,10,0.85)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          animation: 'fadeIn 0.3s ease-out'
+        }}>
+          <div style={{
+            width: '100%',
+            maxWidth: 460,
+            background: 'linear-gradient(135deg, rgba(232,16,42,0.06) 0%, rgba(255,255,255,0.03) 100%)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 24,
+            padding: 32,
+            boxShadow: '0 20px 50px rgba(0,0,0,0.6)',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '3rem', marginBottom: 16 }}>⚠️</div>
+            <h2 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1.3rem', color: '#f0f0fa', marginBottom: 12 }}>
+              Switching matching city?
+            </h2>
+            <p style={{ fontSize: '0.9rem', color: '#a8a8c0', lineHeight: 1.5, marginBottom: 24 }}>
+              You are switching from <strong style={{ color: '#ff6b7a' }}>{selectedCity}</strong> to <strong style={{ color: '#ff6b7a' }}>{pendingCitySwitch}</strong>. Your current room belongs to <strong style={{ color: '#ff6b7a' }}>{selectedCity}</strong>. Switching cities will leave your current room.
+            </p>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button
+                type="button"
+                onClick={handleCancelCitySwitch}
+                style={{
+                  flex: 1,
+                  padding: '12px 0',
+                  borderRadius: 12,
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: '#a8a8c0',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  transition: 'all 200ms ease'
+                }}
+              >
+                Stay in {selectedCity}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmCitySwitch}
+                style={{
+                  flex: 1,
+                  padding: '12px 0',
+                  borderRadius: 12,
+                  background: 'linear-gradient(135deg, #e8102a, #ff4b5e)',
+                  border: 'none',
+                  color: 'white',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  transition: 'all 200ms ease'
+                }}
+              >
+                Switch City
               </button>
             </div>
           </div>

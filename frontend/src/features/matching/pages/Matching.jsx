@@ -99,9 +99,60 @@ const Matching = () => {
   const [readyLoading, setReadyLoading] = useState(false);
   const [alternativeRooms, setAlternativeRooms] = useState([]);
   const [altLoading, setAltLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showNearbyRooms, setShowNearbyRooms] = useState(true);
+  const [showBuddyOverlay, setShowBuddyOverlay] = useState(false);
+  const [editForm, setEditForm] = useState({ cinema: '', date: '', showTiming: '' });
+  
+  const [waitMsgIdx, setWaitMsgIdx] = useState(0);
+  const waitMessages = [
+    "🎬 Looking for movie lovers...",
+    "🍿 Checking nearby theatres...",
+    "❤️ Finding your perfect cinema companion...",
+    "🎟️ Almost there..."
+  ];
+
   const wasMatchedRef = useRef(false);
   const socketRef     = useRef(null);
   const roomId      = state?.roomId;
+
+  // Synthesize pleasant dual-tone chime on match found
+  const playMatchSound = () => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15); // A5
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.4);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    const msgTimer = setInterval(() => {
+      setWaitMsgIdx(prev => (prev + 1) % waitMessages.length);
+    }, 3000);
+    return () => clearInterval(msgTimer);
+  }, []);
+
+  useEffect(() => {
+    if (room && showEditModal) {
+      setEditForm({
+        cinema: room.cinema || '',
+        date: room.date || '',
+        showTiming: room.showTiming || ''
+      });
+    }
+  }, [room, showEditModal]);
 
   useEffect(() => {
     if (!roomId) { navigate('/dashboard'); return; }
@@ -139,6 +190,15 @@ const Matching = () => {
         }
         wasMatchedRef.current = isMatchedNow;
         setRoom(updatedRoom);
+        
+        // Auto-match overlay alert and audio beep triggers
+        if (isMatchedNow) {
+          playMatchSound();
+          setShowBuddyOverlay(true);
+          setTimeout(() => {
+            navigate(`/chat/${updatedRoom.id || updatedRoom._id}`);
+          }, 2500);
+        }
       }
     });
 
@@ -160,7 +220,6 @@ const Matching = () => {
       try {
         const res = await roomService.getVacantRooms(room.city);
         const vacant = res.rooms || [];
-        // Filter vacant rooms: same movie name, different theater, user not in it
         const filtered = vacant.filter(r => 
           r.movie.trim().toLowerCase() === room.movie.trim().toLowerCase() &&
           r.cinema.trim().toLowerCase() !== room.cinema.trim().toLowerCase() &&
@@ -178,7 +237,7 @@ const Matching = () => {
     };
     
     fetchAlternatives();
-    const interval = setInterval(fetchAlternatives, 4000);
+    const interval = setInterval(fetchAlternatives, 5000); // Polling alternatives every 5 seconds
     return () => clearInterval(interval);
   }, [room, roomId]);
 
@@ -197,6 +256,47 @@ const Matching = () => {
       }
     }
   }, [room, navigate]);
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await roomService.updateRoom(roomId, editForm);
+      setRoom(res.room || res);
+      setShowEditModal(false);
+    } catch (err) {
+      setError('Could not update preferences.');
+    }
+  };
+
+  const handleCancelRoom = async () => {
+    try {
+      await roomService.deleteRoom(roomId);
+      navigate('/dashboard');
+    } catch (err) {
+      try {
+        await roomService.leaveRoom(roomId);
+        navigate('/dashboard');
+      } catch {
+        setError('Could not cancel room. Please try again.');
+      }
+    }
+  };
+
+  const handleShareRoom = () => {
+    const shareLink = `${window.location.origin}/dashboard?joinRoom=${roomId}`;
+    navigator.clipboard.writeText(shareLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const isMatchUnlocked = room && (
+    (room.matchType === 'group' && room.members.length >= 2) ||
+    (room.matchType === 'solo' && room.members.length >= 2)
+  );
+
+  const showWaitScreen = searching || !room || !isMatchUnlocked;
+
+  const totalMovieLovers = (room?.members?.length || 0) + alternativeRooms.reduce((acc, r) => acc + (r.members?.length || 0), 0);
 
   if (error) {
     return (
@@ -227,8 +327,8 @@ const Matching = () => {
       </div>
 
       <div className="section-container" style={{ paddingTop: 120, paddingBottom: 64, position: 'relative', zIndex: 1 }}>
-        {(searching || !room || room.members.length < room.capacity) ? (
-          /* ── Searching State ── */
+        {showWaitScreen ? (
+          /* ── Interactive Waiting Lobby ── */
           <div style={{ textAlign: 'center', maxWidth: 520, margin: '0 auto', animation: 'fadeIn 0.6s ease forwards' }}>
             {alertMessage && (
               <div style={{
@@ -249,30 +349,79 @@ const Matching = () => {
                 {alertMessage}
               </div>
             )}
-            <RadarAnimation />
-            <h2 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '2rem', color: '#f0f0fa', letterSpacing: '-0.03em', marginBottom: 12 }}>
-              {room ? "Waiting for another movie lover..." : "Scanning theaters..."}
-            </h2>
-            <p style={{ color: '#6b6b85', fontSize: '1rem', lineHeight: 1.65, marginBottom: 32 }}>
-              {room ? "Your waiting room has been created successfully. Other movie lovers will see this room in Live Open Matches." : "Our matching engine is finding the perfect movie companions for you."}
-            </p>
-            {/* Steps */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 320, margin: '0 auto', marginBottom: 28 }}>
-              {[
-                { text: 'Scanning your city\'s theaters', done: true },
-                { text: 'Matching your showtime preferences', done: true },
-                { text: 'Finding compatible companions...', done: false },
-              ].map((s, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 10, background: s.done ? 'rgba(16,185,129,0.08)' : 'rgba(255,255,255,0.04)', border: `1px solid ${s.done ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.07)'}` }}>
-                  {s.done ? (
-                    <PremiumIcon name="check" size={16} color="#10b981" />
-                  ) : (
-                    <Spinner size="sm" color="#e8102a" />
-                  )}
-                  <span style={{ fontSize: '0.875rem', color: s.done ? '#34d399' : '#6b6b85' }}>{s.text}</span>
-                </div>
-              ))}
+
+            <div style={{
+              background: 'rgba(16,185,129,0.1)',
+              border: '1px solid rgba(16,185,129,0.25)',
+              borderRadius: 14,
+              padding: '10px 18px',
+              color: '#34d399',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              marginBottom: 24,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              boxShadow: '0 4px 20px rgba(16,185,129,0.15)'
+            }}>
+              <PremiumIcon name="check" size={16} color="#34d399" />
+              Room Created Successfully
             </div>
+
+            <RadarAnimation />
+
+            {/* Real-time Progress Bar */}
+            {room && (
+              <div style={{ maxWidth: 460, margin: '16px auto 24px', padding: '0 20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#a8a8c0', marginBottom: 8, fontWeight: 600 }}>
+                  <span>Lobby Status</span>
+                  <span>{room.members.length} / {room.capacity} Members</span>
+                </div>
+                <div style={{ height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 9999, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.03)' }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${(room.members.length / room.capacity) * 100}%`,
+                    background: 'linear-gradient(90deg, #e8102a, #ff6b7a)',
+                    borderRadius: 9999,
+                    transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+                  }} />
+                </div>
+                {room.matchType === 'group' && room.members.length < 2 && (
+                  <p style={{ fontSize: '0.78rem', color: '#ff6b7a', marginTop: 8, margin: 0, fontWeight: 700 }}>
+                    Waiting for at least 2 members to unlock group chat.
+                  </p>
+                )}
+                {room.matchType === 'group' && room.members.length >= 2 && room.members.length < 4 && (
+                  <p style={{ fontSize: '0.78rem', color: '#34d399', marginTop: 8, margin: 0, fontWeight: 700 }}>
+                    Lobby unlocked! Waiting for remaining members (Max 4).
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div style={{
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.06)',
+              borderRadius: 20,
+              padding: '8px 16px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              marginBottom: 16,
+              fontSize: '0.85rem',
+              color: '#f0f0fa',
+              fontWeight: 600
+            }}>
+              <span style={{ animation: 'pulseGlow 2s infinite' }}>👥</span>
+              {totalMovieLovers} movie lover{totalMovieLovers === 1 ? '' : 's'} looking for this movie nearby
+            </div>
+
+            <h2 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '2rem', color: '#f0f0fa', letterSpacing: '-0.03em', marginBottom: 12 }}>
+              {waitMessages[waitMsgIdx]}
+            </h2>
+            <p style={{ color: '#6b6b85', fontSize: '0.95rem', lineHeight: 1.6, marginBottom: 28 }}>
+              Waiting for another movie lover to join your room. While waiting, you can explore other rooms or manage this session below.
+            </p>
 
             {room && (
               <>
@@ -281,14 +430,15 @@ const Matching = () => {
                   border: '1px solid rgba(255,255,255,0.06)',
                   borderRadius: 18,
                   padding: '20px 24px',
-                  maxWidth: 440,
-                  margin: '0 auto 24px',
-                  textAlign: 'left'
+                  maxWidth: 460,
+                  margin: '0 auto 28px',
+                  textAlign: 'left',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
                 }}>
-                  <h3 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1rem', color: '#ff6b7a', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Waiting Room Details
+                  <h3 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '0.9rem', color: '#ff6b7a', marginBottom: 14, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    My Show Preferences
                   </h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 16px' }}>
                     <div>
                       <p style={{ fontSize: '0.65rem', color: '#4a4a60', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>MOVIE</p>
                       <p style={{ fontSize: '0.85rem', color: '#f0f0fa', fontWeight: 600 }}>{room.movie}</p>
@@ -308,98 +458,204 @@ const Matching = () => {
                   </div>
                 </div>
 
-                {alternativeRooms.length > 0 && (
+                {/* Live Lobbies Control Panel Grid */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: 12,
+                  maxWidth: 460,
+                  margin: '0 auto 32px'
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/chat/${roomId}`)}
+                    style={{
+                      gridColumn: 'span 2',
+                      padding: '14px',
+                      borderRadius: 14,
+                      background: 'linear-gradient(135deg, #e8102a, #ff4b5e)',
+                      border: 'none',
+                      color: 'white',
+                      fontWeight: 700,
+                      fontSize: '0.95rem',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 15px rgba(232,16,42,0.3)',
+                      transition: 'all 200ms ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8
+                    }}
+                  >
+                    <PremiumIcon name="group" size={18} color="white" />
+                    View My Room (Host)
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowEditModal(true)}
+                    style={{
+                      padding: '12px',
+                      borderRadius: 12,
+                      background: 'rgba(255,255,255,0.04)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      color: '#f0f0fa',
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      transition: 'all 200ms ease'
+                    }}
+                  >
+                    Edit Preferences
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleShareRoom}
+                    style={{
+                      padding: '12px',
+                      borderRadius: 12,
+                      background: copied ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.04)',
+                      border: copied ? '1px solid rgba(16,185,129,0.3)' : '1px solid rgba(255,255,255,0.08)',
+                      color: copied ? '#34d399' : '#f0f0fa',
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      transition: 'all 200ms ease'
+                    }}
+                  >
+                    {copied ? 'Link Copied! ✓' : 'Share Room Link'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowNearbyRooms(prev => !prev)}
+                    style={{
+                      padding: '12px',
+                      borderRadius: 12,
+                      background: showNearbyRooms ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      color: '#f0f0fa',
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      transition: 'all 200ms ease'
+                    }}
+                  >
+                    {showNearbyRooms ? 'Hide Nearby Rooms' : 'Browse Nearby Rooms'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleCancelRoom}
+                    style={{
+                      padding: '12px',
+                      borderRadius: 12,
+                      background: 'rgba(239,68,68,0.06)',
+                      border: '1px solid rgba(239,68,68,0.2)',
+                      color: '#f87171',
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      transition: 'all 200ms ease'
+                    }}
+                  >
+                    Cancel / Delete Room
+                  </button>
+                </div>
+
+                {/* Nearby Movie Rooms (Similar Rooms Section) */}
+                {showNearbyRooms && (
                   <div style={{
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    borderRadius: 18,
-                    padding: '20px 24px',
-                    maxWidth: 440,
-                    margin: '0 auto 24px',
+                    background: 'rgba(255,255,255,0.02)',
+                    border: '1px solid rgba(255,255,255,0.05)',
+                    borderRadius: 24,
+                    padding: '24px 28px',
+                    maxWidth: 460,
+                    margin: '0 auto',
                     textAlign: 'left'
                   }}>
-                    <h3 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '0.9rem', color: '#ff6b7a', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      Other Movie Lovers Nearby
+                    <h3 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1rem', color: '#ff6b7a', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Nearby Movie Rooms
                     </h3>
-                    <p style={{ fontSize: '0.78rem', color: '#6b6b85', lineHeight: 1.4, marginBottom: 14 }}>
-                      No exact match at your chosen theater. Would you like to watch it at another nearby theater instead?
+                    <p style={{ fontSize: '0.78rem', color: '#6b6b85', lineHeight: 1.4, marginBottom: 18 }}>
+                      Others watching <strong style={{ color: '#f0f0fa' }}>{room.movie}</strong> nearby. Click Join below to switch theaters and pair immediately!
                     </p>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {alternativeRooms.map(altRoom => (
-                        <div key={altRoom.id || altRoom._id} style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          background: 'rgba(255,255,255,0.02)',
-                          border: '1px solid rgba(255,255,255,0.05)',
-                          borderRadius: 12,
-                          padding: '10px 14px',
-                        }}>
-                          <div style={{ textAlign: 'left' }}>
-                            <p style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f0f0fa', marginBottom: 2 }}>{altRoom.cinema}</p>
-                            <p style={{ fontSize: '0.7rem', color: '#6b6b85' }}>{altRoom.showTiming} • {altRoom.members?.length || 1} companion{(altRoom.members?.length || 1) === 1 ? '' : 's'}</p>
+                    
+                    {altLoading && alternativeRooms.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                        <Spinner size="sm" color="#ff6b7a" />
+                      </div>
+                    ) : alternativeRooms.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        {alternativeRooms.map(altRoom => (
+                          <div key={altRoom.id || altRoom._id} style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            background: 'rgba(255,255,255,0.03)',
+                            border: '1px solid rgba(255,255,255,0.06)',
+                            borderRadius: 16,
+                            padding: '12px 16px',
+                            transition: 'all 150ms ease'
+                          }}>
+                            <div style={{ textAlign: 'left', minWidth: 0, paddingRight: 10 }}>
+                              <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#f0f0fa', marginBottom: 3, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                                {altRoom.cinema}
+                              </p>
+                              <p style={{ fontSize: '0.72rem', color: '#6b6b85', margin: 0 }}>
+                                {altRoom.showTiming} • {altRoom.members?.length || 1} movie lover{(altRoom.members?.length || 1) === 1 ? '' : 's'}
+                              </p>
+                            </div>
+                            
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  setSearching(true);
+                                  await roomService.leaveRoom(room.id || room._id);
+                                  await roomService.joinRoom(altRoom.id || altRoom._id, 'Hi! Excited to watch this movie together.');
+                                  navigate('/matching', { state: { roomId: altRoom.id || altRoom._id } });
+                                  window.location.reload();
+                                } catch (err) {
+                                  setError('Could not join alternative room.');
+                                }
+                              }}
+                              style={{
+                                background: 'rgba(232,16,42,0.1)',
+                                border: '1px solid rgba(232,16,42,0.3)',
+                                borderRadius: 10,
+                                color: '#ff6b7a',
+                                fontSize: '0.8rem',
+                                fontWeight: 700,
+                                padding: '6px 14px',
+                                cursor: 'pointer',
+                                transition: 'all 150ms ease',
+                                flexShrink: 0
+                              }}
+                              onMouseEnter={e => { e.currentTarget.style.background = '#e8102a'; e.currentTarget.style.color = 'white'; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(232,16,42,0.1)'; e.currentTarget.style.color = '#ff6b7a'; }}
+                            >
+                              Join
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              try {
-                                setSearching(true);
-                                await roomService.leaveRoom(room.id || room._id);
-                                await roomService.joinRoom(altRoom.id || altRoom._id, 'Hi! Excited to watch this movie together.');
-                                navigate('/matching', { state: { roomId: altRoom.id || altRoom._id } });
-                                window.location.reload();
-                              } catch (err) {
-                                setError('Could not join alternative room.');
-                              }
-                            }}
-                            style={{
-                              background: 'rgba(232,16,42,0.1)',
-                              border: '1px solid rgba(232,16,42,0.3)',
-                              borderRadius: 8,
-                              color: '#ff6b7a',
-                              fontSize: '0.75rem',
-                              fontWeight: 700,
-                              padding: '5px 10px',
-                              cursor: 'pointer',
-                              transition: 'all 150ms ease'
-                            }}
-                            onMouseEnter={e => { e.currentTarget.style.background = '#e8102a'; e.currentTarget.style.color = 'white'; }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(232,16,42,0.1)'; e.currentTarget.style.color = '#ff6b7a'; }}
-                          >
-                            Join
-                          </button>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{
+                        padding: '24px 16px',
+                        background: 'rgba(255,255,255,0.01)',
+                        border: '1px dashed rgba(255,255,255,0.06)',
+                        borderRadius: 16,
+                        textAlign: 'center',
+                        color: '#6b6b85',
+                        fontSize: '0.85rem'
+                      }}>
+                        No other multiplex rooms found for this movie. We will keep checking in the background!
+                      </div>
+                    )}
                   </div>
                 )}
-
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      await roomService.leaveRoom(room.id || room._id);
-                      navigate('/dashboard');
-                    } catch (err) {
-                      setError('Could not leave room. Please try again.');
-                    }
-                  }}
-                  style={{
-                    width: '100%',
-                    maxWidth: 320,
-                    padding: '12px',
-                    borderRadius: 9999,
-                    background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    color: '#a8a8c0',
-                    fontWeight: 700,
-                    fontSize: '0.9rem',
-                    cursor: 'pointer',
-                    transition: 'all 200ms ease'
-                  }}
-                >
-                  Cancel Matching / Leave Room
-                </button>
               </>
             )}
           </div>
@@ -419,7 +675,7 @@ const Matching = () => {
                 const memberUserId = member.user?._id || member.user?.id || member.user;
                 const activeUserId = user?._id || user?.id;
                 const isMe = memberUserId && activeUserId && memberUserId.toString() === activeUserId.toString();
-                const initials = (member.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                const initials = (member.name || member.user?.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
                 
                 return (
                   <div key={idx} style={{
@@ -455,10 +711,10 @@ const Matching = () => {
                       </div>
                       <div>
                         <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#f0f0fa', margin: 0 }}>
-                          {member.name || 'User'} {isMe && '(You)'}
+                          {(member.name || member.user?.name || 'User')} {isMe && '(You)'}
                         </h4>
                         <p style={{ fontSize: '0.78rem', color: '#6b6b85', margin: 0 }}>
-                          {member.age ? `${member.age} yrs` : ''} · {member.gender?.charAt(0).toUpperCase() + member.gender?.slice(1)}
+                          {(member.age || member.user?.age) ? `${member.age || member.user?.age} yrs` : ''} · {(member.gender || member.user?.gender)?.charAt(0).toUpperCase() + (member.gender || member.user?.gender)?.slice(1)}
                         </p>
                       </div>
                     </div>
@@ -560,6 +816,136 @@ const Matching = () => {
           </div>
         )}
       </div>
+
+      {/* Edit Preferences Modal */}
+      {showEditModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(5,5,10,0.85)',
+          backdropFilter: 'blur(10px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          animation: 'fadeIn 0.3s ease-out'
+        }}>
+          <div style={{
+            width: '90%',
+            maxWidth: 440,
+            background: 'linear-gradient(135deg, rgba(232,16,42,0.06) 0%, rgba(255,255,255,0.03) 100%)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 24,
+            padding: 28,
+            boxShadow: '0 20px 50px rgba(0,0,0,0.6)',
+          }}>
+            <h3 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1.2rem', color: '#f0f0fa', marginBottom: 20 }}>
+              Edit Show Preferences
+            </h3>
+            <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#ff6b7a', display: 'block', marginBottom: 6 }}>CINEMA THEATRE</label>
+                <input
+                  type="text"
+                  value={editForm.cinema}
+                  onChange={e => setEditForm(f => ({ ...f, cinema: e.target.value }))}
+                  style={{
+                    width: '100%', padding: '10px 14px',
+                    background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: 10, color: '#f0f0fa', outline: 'none'
+                  }}
+                  required
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#ff6b7a', display: 'block', marginBottom: 6 }}>DATE</label>
+                <input
+                  type="date"
+                  value={editForm.date}
+                  onChange={e => setEditForm(f => ({ ...f, date: e.target.value }))}
+                  style={{
+                    width: '100%', padding: '10px 14px',
+                    background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: 10, color: '#f0f0fa', outline: 'none'
+                  }}
+                  required
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#ff6b7a', display: 'block', marginBottom: 6 }}>SHOWTIME</label>
+                <select
+                  value={editForm.showTiming}
+                  onChange={e => setEditForm(f => ({ ...f, showTiming: e.target.value }))}
+                  style={{
+                    width: '100%', padding: '10px 14px',
+                    background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: 10, color: '#f0f0fa', outline: 'none'
+                  }}
+                  required
+                >
+                  <option value="Morning Show">Morning Show</option>
+                  <option value="Afternoon Show">Afternoon Show</option>
+                  <option value="Evening Show">Evening Show</option>
+                  <option value="Night Show">Night Show</option>
+                </select>
+              </div>
+              <div style={{ display: 'flex', gap: 12, marginTop: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  style={{
+                    flex: 1, padding: '11px 0', borderRadius: 10,
+                    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+                    color: '#a8a8c0', fontWeight: 700, cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    flex: 1, padding: '11px 0', borderRadius: 10,
+                    background: 'linear-gradient(135deg, #e8102a, #ff4b5e)', border: 'none',
+                    color: 'white', fontWeight: 700, cursor: 'pointer'
+                  }}
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Match Found Overlay with chime */}
+      {showBuddyOverlay && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(5,5,10,0.92)',
+          backdropFilter: 'blur(20px)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          animation: 'fadeIn 0.4s ease-out'
+        }}>
+          <div style={{
+            textAlign: 'center',
+            animation: 'bounceIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards'
+          }}>
+            <div style={{ fontSize: '5rem', marginBottom: 20 }}>🎉</div>
+            <h2 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 900, fontSize: '2.5rem', color: '#ff6b7a', marginBottom: 12, letterSpacing: '-0.02em' }}>
+              We found your movie buddy!
+            </h2>
+            <p style={{ color: '#a8a8c0', fontSize: '1.1rem', marginBottom: 32 }}>
+              Opening room chat lobby...
+            </p>
+            <Spinner size="lg" color="#e8102a" />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

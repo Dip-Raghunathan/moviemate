@@ -433,6 +433,36 @@ const Chat = () => {
         </div>
       </header>
 
+      {/* Lobby Member Progress Bar */}
+      {room && (
+        <div style={{
+          background: 'rgba(5,5,10,0.6)',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          padding: '8px 24px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 6
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#ff6b7a', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              {room.matchType === 'group' ? 'Group Match Lobby' : 'Solo Match Lobby'}
+            </span>
+            <span style={{ fontSize: '0.75rem', color: '#a8a8c0', fontWeight: 600 }}>
+              {room.members?.length || 1} / {room.capacity || 4} Members 
+              {room.members?.length < room.capacity ? ` · Waiting for ${room.capacity - room.members?.length} more` : ' · Complete!'}
+            </span>
+          </div>
+          <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 9999, overflow: 'hidden' }}>
+            <div style={{
+              height: '100%',
+              width: `${((room.members?.length || 1) / (room.capacity || 4)) * 100}%`,
+              background: 'linear-gradient(90deg, #e8102a, #ff6b7a)',
+              transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+            }} />
+          </div>
+        </div>
+      )}
+
       {/* ── Body ── */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
         

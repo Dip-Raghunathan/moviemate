@@ -46,3 +46,13 @@ export const leaveIntro = async (roomId) => {
   const res = await api.post(`/rooms/${roomId}/leave-intro`);
   return res.data?.data || res.data;
 };
+
+export const updateRoom = async (roomId, updates) => {
+  const res = await api.put(`/rooms/${roomId}`, updates);
+  return res.data?.data || res.data;
+};
+
+export const deleteRoom = async (roomId) => {
+  const res = await api.delete(`/rooms/${roomId}`);
+  return res.data?.data || res.data;
+};

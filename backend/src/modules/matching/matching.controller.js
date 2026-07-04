@@ -102,6 +102,25 @@ class MatchingController {
       next(error);
     }
   };
+
+  updateRoom = async (req, res, next) => {
+    try {
+      const room = await matchingService.updateRoom(req.params.id, req.user._id, req.body);
+      const response = RoomDTO.fromRoom(room);
+      return res.success({ room: response }, 'Room updated successfully');
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteRoom = async (req, res, next) => {
+    try {
+      const result = await matchingService.deleteRoom(req.params.id, req.user._id);
+      return res.success(result, 'Room deleted successfully');
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 module.exports = new MatchingController();

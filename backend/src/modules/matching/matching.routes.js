@@ -15,5 +15,7 @@ router.post('/:id/join', roomIdParamRules, matchingController.joinRoom);
 router.post('/:id/leave', roomIdParamRules, matchingController.leave);
 router.post('/:id/ready', roomIdParamRules, matchingController.setReadyToChat);
 router.post('/:id/leave-intro', roomIdParamRules, matchingController.leaveIntro);
+router.put('/:id', roomIdParamRules, matchingController.updateRoom);
+router.delete('/:id', roomIdParamRules, matchingController.deleteRoom);
 
 module.exports = router;
