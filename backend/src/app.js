@@ -11,6 +11,26 @@ const v1Router = require('./api/v1.routes');
 
 const app = express();
 
+// Database Connection Middleware (ensures connection in serverless context)
+const mongoose = require('mongoose');
+let isConnected = false;
+app.use(async (req, res, next) => {
+  if (isConnected && mongoose.connection.readyState === 1) return next();
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    isConnected = true;
+    next();
+  } catch (err) {
+    console.error('Database Connection Error:', err.message);
+    return res.status(500).json({
+      status: 'error',
+      errorCode: 'DATABASE_CONNECTION_FAILED',
+      message: 'Database connection failed',
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
 // --- Core Middleware ---
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
