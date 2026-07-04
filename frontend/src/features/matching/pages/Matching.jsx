@@ -202,8 +202,39 @@ const Matching = () => {
       }
     });
 
+    // Fallback polling loop (re-checks database changes in serverless setups)
+    const pollInterval = setInterval(async () => {
+      if (navigator.onLine) {
+        try {
+          const { room: updatedRoom } = await roomService.getRoom(roomId);
+          if (updatedRoom) {
+            const isMatchedNow = updatedRoom.members.length === updatedRoom.capacity;
+            if (wasMatchedRef.current && !isMatchedNow) {
+              setAlertMessage('Your companion left before chat started.');
+              setTimeout(() => setAlertMessage(''), 5000);
+            }
+            const isJustMatched = !wasMatchedRef.current && isMatchedNow;
+            wasMatchedRef.current = isMatchedNow;
+            setRoom(updatedRoom);
+            
+            // Auto-match overlay alert and audio beep triggers
+            if (isJustMatched) {
+              playMatchSound();
+              setShowBuddyOverlay(true);
+              setTimeout(() => {
+                navigate(`/chat/${updatedRoom.id || updatedRoom._id}`);
+              }, 2500);
+            }
+          }
+        } catch (err) {
+          console.error('[Polling] Failed to fetch room update:', err);
+        }
+      }
+    }, 2500);
+
     return () => {
       clearTimeout(searchTimer);
+      clearInterval(pollInterval);
       if (socketRef.current) {
         socketRef.current.emit('leave_room', roomId);
         socketRef.current.disconnect();
