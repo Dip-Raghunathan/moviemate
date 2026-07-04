@@ -19,9 +19,11 @@ const Chat = lazy(() => import('./features/chat/pages/Chat'));
 const Profile = lazy(() => import('./features/profile/pages/Profile'));
 const SessionsPage = lazy(() => import('./features/profile/pages/SessionsPage'));
 const UpgradePage = lazy(() => import('./features/profile/pages/UpgradePage'));
-const CommunitiesPage = lazy(() => import('./features/communities/pages/CommunitiesPage'));
-const EventsPage = lazy(() => import('./features/events/pages/EventsPage'));
+const DiscoverPage = lazy(() => import('./features/discover/pages/DiscoverPage'));
+const WatchlistPage = lazy(() => import('./features/watchlist/pages/WatchlistPage'));
 const SearchPage = lazy(() => import('./features/matching/pages/SearchPage'));
+const NotificationsPage = lazy(() => import('./features/matching/pages/NotificationsPage'));
+const VerifyEmail = lazy(() => import('./features/authentication/pages/VerifyEmail'));
 
 // ── App Loading Splash ────────────────────────────────────────────────────────
 const AppLoadingSplash = () => (
@@ -80,11 +82,13 @@ const AppRoutes = () => {
       '/dashboard': 'Dashboard | PhilixMate',
       '/search': 'Search | PhilixMate',
       '/matching': 'Matching | PhilixMate',
-      '/communities': 'Communities | PhilixMate',
-      '/events': 'Events | PhilixMate',
+      '/discover': 'Discover | PhilixMate',
+      '/watchlist': 'Watchlist | PhilixMate',
       '/profile': 'Profile | PhilixMate',
       '/sessions': 'Sessions | PhilixMate',
       '/upgrade': 'Upgrade | PhilixMate',
+      '/notifications': 'Notifications | PhilixMate',
+      '/verify-email': 'Verify Email | PhilixMate',
     };
 
     document.title = titles[location.pathname] || 'PhilixMate';
@@ -100,14 +104,16 @@ const AppRoutes = () => {
         <Route path="/login"                 element={<Login />} />
         <Route path="/signup"                element={<Signup />} />
         <Route path="/forgot-password"       element={<ForgotPassword />} />
-        <Route path="/reset-password/:token" element={<ResetPassword />} />
+        <Route path="/reset-password"        element={<ResetPassword />} />
+        <Route path="/verify-email"          element={<VerifyEmail />} />
 
         {/* Protected */}
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/search"    element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
         <Route path="/matching"  element={<ProtectedRoute><Matching /></ProtectedRoute>} />
-        <Route path="/communities" element={<ProtectedRoute><CommunitiesPage /></ProtectedRoute>} />
-        <Route path="/events"  element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
+        <Route path="/discover" element={<ProtectedRoute><DiscoverPage /></ProtectedRoute>} />
+        <Route path="/watchlist" element={<ProtectedRoute><WatchlistPage /></ProtectedRoute>} />
+        <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
         <Route path="/chat/:roomId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
         <Route path="/profile"   element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/profile/:id" element={<ProtectedRoute><Profile /></ProtectedRoute>} />

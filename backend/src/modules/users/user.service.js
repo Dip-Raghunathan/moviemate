@@ -69,7 +69,35 @@ class UserService {
     }
 
     await userRepository.save(user);
+    try {
+      const { sendNotification } = require('../../utils/notificationHelper');
+      await sendNotification({
+        recipient: user._id,
+        type: 'account_alert',
+        title: 'Profile Updated',
+        body: '👤 Your profile settings were successfully updated.',
+        deepLink: '/profile',
+        priority: 'normal'
+      });
+    } catch (err) {
+      console.error('Failed to trigger profile update notification:', err);
+    }
     return user;
+  }
+
+  async deleteAccount(userId) {
+    const user = await userRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundError('User not found', 'USER_NOT_FOUND');
+    }
+
+    const Watchlist = require('../../database/models/Watchlist');
+    await Watchlist.deleteMany({ userId });
+
+    const User = require('../../database/models/User');
+    await User.findByIdAndDelete(userId);
+
+    return { success: true };
   }
 }
 

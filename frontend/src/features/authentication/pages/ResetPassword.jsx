@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import * as authService from '../../../services/authService';
-import { useAuth } from '../../../core/contexts/AuthContext';
 import Spinner from '../../../shared/components/ui/Spinner';
 import { PremiumIcon } from '../../../shared/components/icons/IconComponents';
 
@@ -23,7 +22,11 @@ const getStrength = (pwd) => {
 };
 
 const ResetPassword = () => {
-  const { token }               = useParams();
+  const [searchParams] = useSearchParams();
+  const emailParam = searchParams.get('email') || '';
+
+  const [email, setEmail]       = useState(emailParam);
+  const [otp, setOtp]           = useState('');
   const [password,      setPwd] = useState('');
   const [confirmPwd, setConf]   = useState('');
   const [error,      setError]  = useState('');
@@ -31,25 +34,24 @@ const ResetPassword = () => {
   const [success, setSuccess]   = useState(false);
   const [fp, setFp]             = useState({});
   const navigate = useNavigate();
-  const { updateUser } = useAuth();
 
   const strength = getStrength(password);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (!email) return setError('Email address is required.');
+    if (!otp || otp.length !== 6) return setError('Please enter the 6-digit reset code.');
     if (password !== confirmPwd) return setError('Passwords do not match.');
     if (password.length < 6) return setError('Password must be at least 6 characters.');
 
     setLoading(true);
     try {
-      const res = await authService.resetPassword(token, password);
-      localStorage.setItem('philixmate_token', res.token);
-      updateUser(res.user);
+      await authService.resetPasswordWithOTP(email, otp, password);
       setSuccess(true);
-      setTimeout(() => navigate('/dashboard'), 2000);
+      setTimeout(() => navigate('/login', { state: { message: 'Password reset successful. Please log in.' } }), 2500);
     } catch (err) {
-      setError(err.response?.data?.message || 'Reset link is invalid or has expired.');
+      setError(err.response?.data?.message || 'Failed to reset password. Please verify the code.');
     } finally {
       setLoading(false);
     }
@@ -86,7 +88,7 @@ const ResetPassword = () => {
                 <PremiumIcon name="check" size={48} color="#10b981" />
               </div>
               <h2 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1.5rem', color: '#f0f0fa', letterSpacing: '-0.03em', marginBottom: 12 }}>Password reset!</h2>
-              <p style={{ color: '#6b6b85', fontSize: '0.9rem', lineHeight: 1.6 }}>Redirecting you to the dashboard...</p>
+              <p style={{ color: '#6b6b85', fontSize: '0.9rem', lineHeight: 1.6 }}>Redirecting you to login page...</p>
               <Spinner style={{ margin: '20px auto 0' }} />
             </div>
           ) : (
@@ -95,7 +97,7 @@ const ResetPassword = () => {
                 Set new password
               </h2>
               <p style={{ color: '#6b6b85', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: 28 }}>
-                Choose a strong password for your account.
+                Enter the OTP reset code and choose a new password.
               </p>
 
               {error && (
@@ -106,6 +108,14 @@ const ResetPassword = () => {
               )}
 
               <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div>
+                  <label htmlFor="rp-email" style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#a8a8c0', marginBottom: 7 }}>Email Address</label>
+                  <input id="rp-email" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} onFocus={() => setFp(f=>({...f,email:true}))} onBlur={() => setFp(f=>({...f,email:false}))} style={iStyle('email')} required />
+                </div>
+                <div>
+                  <label htmlFor="rp-otp" style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#a8a8c0', marginBottom: 7 }}>Verification OTP Code</label>
+                  <input id="rp-otp" type="text" maxLength="6" placeholder="Enter 6-digit code" value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, ''))} onFocus={() => setFp(f=>({...f,otp:true}))} onBlur={() => setFp(f=>({...f,otp:false}))} style={iStyle('otp')} required />
+                </div>
                 <div>
                   <label htmlFor="rp-pwd" style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#a8a8c0', marginBottom: 7 }}>New Password</label>
                   <input id="rp-pwd" type="password" autoComplete="new-password" placeholder="At least 6 characters" minLength={6} value={password} onChange={e => setPwd(e.target.value)} onFocus={() => setFp(f=>({...f,pwd:true}))} onBlur={() => setFp(f=>({...f,pwd:false}))} style={iStyle('pwd')} required />

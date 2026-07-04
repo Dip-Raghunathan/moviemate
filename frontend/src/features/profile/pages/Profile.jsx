@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import Navbar from '../../../shared/components/Navbar';
 import { useAuth } from '../../../core/contexts/AuthContext';
 import * as userService from '../../../services/userService';
@@ -64,8 +64,9 @@ const BANNERS = {
 };
 
 const Profile = () => {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
   const { id: urlUserId } = useParams();
+  const navigate = useNavigate();
   const isOwnProfile = !urlUserId || urlUserId === user?.id || urlUserId === user?._id;
 
   const [profileUser, setProfileUser] = useState(null);
@@ -198,6 +199,23 @@ const Profile = () => {
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
       console.error('Failed to update privacy settings:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!window.confirm('Are you absolutely sure you want to permanently delete your account? This action is irreversible.')) {
+      return;
+    }
+    try {
+      setSaving(true);
+      await userService.deleteAccount();
+      logout();
+      navigate('/');
+    } catch (err) {
+      console.error('Failed to delete account:', err);
+      alert('Failed to delete account. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -493,6 +511,33 @@ const Profile = () => {
 
                   </div>
                 </div>
+
+                {/* Danger Zone */}
+                <div style={{ background: 'rgba(239,68,68,0.02)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: 24, padding: '24px' }}>
+                  <SH title="Danger Zone" subtitle="Irreversible account actions" />
+                  <p style={{ fontSize: '0.76rem', color: '#6b6b85', lineHeight: 1.4, marginBottom: 16 }}>
+                    Permanently delete your PhilixMate account. This will instantly delete your profile, active matches, and saved watchlist items. This action cannot be undone.
+                  </p>
+                  <button
+                    onClick={handleDeleteAccount}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      borderRadius: 14,
+                      background: 'rgba(239,68,68,0.1)',
+                      border: '1px solid rgba(239,68,68,0.25)',
+                      color: '#f87171',
+                      fontSize: '0.875rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 200ms ease',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.18)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; }}
+                  >
+                    Delete Account Permanently
+                  </button>
+                </div>
               </>
             )}
 
@@ -525,6 +570,34 @@ const Profile = () => {
 
           {/* ── Right column ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 24, animation: 'slideUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.2s both' }}>
+
+            {/* My Watch Stats */}
+            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 24, padding: '24px' }}>
+              <SH title="My Watch Stats" subtitle="Detailed analytics of your theater matchings" />
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
+                <div style={{ padding: 14, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 16, textAlign: 'center' }}>
+                  <p style={{ fontSize: '0.7rem', fontWeight: 700, color: '#6b6b85', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>Match Completion</p>
+                  <p style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: '1.25rem', color: '#ff6b7a', margin: 0 }}>94%</p>
+                </div>
+                <div style={{ padding: 14, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 16, textAlign: 'center' }}>
+                  <p style={{ fontSize: '0.7rem', fontWeight: 700, color: '#6b6b85', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>Avg Rating</p>
+                  <p style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: '1.25rem', color: '#00f0ff', margin: 0 }}>
+                    {journal.length > 0 ? (journal.reduce((sum, r) => sum + r.rating, 0) / journal.length).toFixed(1) : '0.0'}/10
+                  </p>
+                </div>
+                <div style={{ padding: 14, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 16, textAlign: 'center' }}>
+                  <p style={{ fontSize: '0.7rem', fontWeight: 700, color: '#6b6b85', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>Logged Reviews</p>
+                  <p style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: '1.25rem', color: '#f5a623', margin: 0 }}>{journal.length}</p>
+                </div>
+                <div style={{ padding: 14, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 16, textAlign: 'center' }}>
+                  <p style={{ fontSize: '0.7rem', fontWeight: 700, color: '#6b6b85', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>Rank</p>
+                  <p style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: '0.85rem', color: '#10b981', margin: 0, textTransform: 'uppercase', paddingTop: 4 }}>
+                    {engagement.level >= 5 ? 'Cinephile' : engagement.level >= 2 ? 'Reviewer' : 'Novice'}
+                  </p>
+                </div>
+              </div>
+            </div>
 
             {/* Account info */}
             <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 24, padding: '24px' }}>

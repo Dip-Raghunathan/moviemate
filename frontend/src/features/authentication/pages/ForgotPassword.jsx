@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import * as authService from '../../../services/authService';
 import Spinner from '../../../shared/components/ui/Spinner';
 import { PremiumIcon } from '../../../shared/components/icons/IconComponents';
@@ -11,6 +11,7 @@ const ForgotPassword = () => {
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState(false);
   const [sent,    setSent]    = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -19,7 +20,7 @@ const ForgotPassword = () => {
     setLoading(true);
     try {
       const res = await authService.forgotPassword(email);
-      setMessage(res.message);
+      setMessage(res.message || 'If an account with that email exists, we have sent a 6-digit OTP reset code.');
       setSent(true);
     } catch (err) {
       setError(err.response?.data?.message || 'Something went wrong. Please try again.');
@@ -43,8 +44,7 @@ const ForgotPassword = () => {
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
           <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-            <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1.25rem', color: '#f0f0fa' }}>VX ShowMate</span>
-            <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1.25rem', color: '#e8102a' }}>X</span>
+            <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1.25rem', color: '#f0f0fa' }}>PhilixMate</span>
           </Link>
         </div>
 
@@ -64,8 +64,15 @@ const ForgotPassword = () => {
                 Check your inbox
               </h2>
               <div style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)', borderRadius: 12, padding: '14px 16px', marginBottom: 24 }}>
-                <p style={{ color: '#34d399', fontSize: '0.9rem', lineHeight: 1.5 }}>{message || 'If an account with that email exists, we\'ve sent a reset link.'}</p>
+                <p style={{ color: '#34d399', fontSize: '0.9rem', lineHeight: 1.5 }}>{message}</p>
               </div>
+              <button
+                onClick={() => navigate(`/reset-password?email=${encodeURIComponent(email)}`)}
+                className="btn btn-primary"
+                style={{ width: '100%', padding: '13px', borderRadius: 12, fontWeight: 700, marginBottom: 20 }}
+              >
+                Go to Reset Password
+              </button>
               <p style={{ color: '#6b6b85', fontSize: '0.875rem', lineHeight: 1.6 }}>
                 Didn't receive the email? Check your spam folder, or{' '}
                 <button onClick={() => { setSent(false); setEmail(''); }} style={{ color: '#e8102a', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.875rem', padding: 0 }}>

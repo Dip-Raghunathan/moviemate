@@ -14,3 +14,8 @@ export const getPublicProfile = async (userId) => {
   const res = await api.get(`/users/${userId}`);
   return res.data?.data?.user || res.data?.user || res.data;
 };
+
+export const deleteAccount = async () => {
+  const res = await api.delete('/users/me');
+  return res.data;
+};

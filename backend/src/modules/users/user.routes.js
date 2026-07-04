@@ -8,6 +8,7 @@ router.use(protect);
 
 router.get('/me', userController.getProfile);
 router.put('/me', updateProfileRules, userController.updateProfile);
+router.delete('/me', userController.deleteAccount);
 router.get('/:id', userController.getPublicProfile);
 
 module.exports = router;

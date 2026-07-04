@@ -21,6 +21,14 @@ connectDB().then(() => {
     logger.info(`Environment: ${env.NODE_ENV}`);
     logger.info(`Port: ${PORT}`);
     logger.info(`========================================`);
+    
+    // Start background watchlist check reminders
+    try {
+      const { startWatchlistReminders } = require('./src/utils/watchlistJob');
+      startWatchlistReminders();
+    } catch (err) {
+      logger.error('Failed to start watchlist reminders job:', err);
+    }
   });
 });
 

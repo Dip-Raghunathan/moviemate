@@ -106,6 +106,25 @@ class SocialController {
       next(error);
     }
   };
+
+  deleteNotification = async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const result = await socialService.deleteNotification(id, req.user._id);
+      return res.success(result, 'Notification deleted successfully');
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  clearAllNotifications = async (req, res, next) => {
+    try {
+      const result = await socialService.clearAllNotifications(req.user._id);
+      return res.success(result, 'All notifications cleared successfully');
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 module.exports = new SocialController();

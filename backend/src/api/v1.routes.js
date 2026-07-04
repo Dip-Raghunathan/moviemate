@@ -12,6 +12,8 @@ const reviewRouter = require('../modules/reviews/review.routes');
 const feedRouter = require('../modules/feed/feed.routes');
 const engagementRouter = require('../modules/engagement/engagement.routes');
 const billingRouter = require('../modules/billing/billing.routes');
+const watchlistRouter = require('../modules/watchlist/watchlist.routes');
+const discoverRouter = require('../modules/discover/discover.routes');
 
 router.use('/auth', authRouter);
 router.use('/users', userRouter);
@@ -24,5 +26,7 @@ router.use('/reviews', reviewRouter);
 router.use('/feed', feedRouter);
 router.use('/engagement', engagementRouter);
 router.use('/billing', billingRouter);
+router.use('/watchlist', watchlistRouter);
+router.use('/discover', discoverRouter);
 
 module.exports = router;

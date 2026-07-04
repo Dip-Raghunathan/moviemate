@@ -2,80 +2,66 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../../../shared/components/Navbar';
 import { PremiumIcon } from '../../../shared/components/icons/IconComponents';
+import { useAuth } from '../../../core/contexts/AuthContext';
 
-// ── Static data ───────────────────────────────────────────────────────────────
+// ── Redesigned Landing Page Sections Data ───────────────────────────────────────
+const WHY_CHOOSE_US = [
+  { icon: 'movie', title: 'Match by Movie', desc: 'Find people watching the same movie, theatre, date and showtime.' },
+  { icon: 'group', title: 'Solo & Group Matching', desc: 'Watch with one companion or join a movie group.' },
+  { icon: 'lock', title: 'Privacy First', desc: 'Chat only starts after both users accept the match.' },
+  { icon: 'user', title: 'Woman-Only Matching', desc: 'An optional feature for additional comfort and safety.' },
+  { icon: 'message', title: 'Smart Introduction Cards', desc: 'Read a short introduction before entering a chat room.' },
+  { icon: 'star', title: 'Watchlist & Discover', desc: 'Save movies you want to watch and discover what others are planning nearby.' }
+];
+
+const STEPS_HOW_IT_WORKS = [
+  { step: '1', title: 'Select Plan', icon: 'ticket', text: 'Select your movie and theatre.' },
+  { step: '2', title: 'Find Companion', icon: 'search', text: 'Find people with the same plan.' },
+  { step: '3', title: 'Introduce', icon: 'message', text: 'Read their introduction card.' },
+  { step: '4', title: 'Connect & Enjoy', icon: 'group', text: 'Accept, chat and enjoy your movie together.' }
+];
+
 const STEPS = [
   {
     number: '01',
     icon: 'ticket',
     title: 'Choose Your Show',
     text: 'Pick the movie, cinema, date, and showtime. We support any theater, anywhere.',
-    gradient: 'linear-gradient(135deg, rgba(232,16,42,0.2), rgba(232,16,42,0.05))',
-    glow: 'rgba(232,16,42,0.3)',
+    gradient: 'linear-gradient(135deg, rgba(232,16,42,0.08), rgba(232,16,42,0.02))',
+    border: 'rgba(232,16,42,0.25)',
+    glow: 'rgba(232,16,42,0.2)',
+    iconColor: '#ff6b7a',
+    iconBg: 'rgba(232,16,42,0.1)'
   },
   {
     number: '02',
     icon: 'group',
     title: 'Set Your Preference',
-    text: 'Solo companion or small group? Friendship or a date? Women-only mode available.',
-    gradient: 'linear-gradient(135deg, rgba(59,130,246,0.2), rgba(59,130,246,0.05))',
-    glow: 'rgba(59,130,246,0.3)',
+    text: 'Solo companion or small group? Friendship match? Woman-only mode available.',
+    gradient: 'linear-gradient(135deg, rgba(59,130,246,0.08), rgba(59,130,246,0.02))',
+    border: 'rgba(59,130,246,0.25)',
+    glow: 'rgba(59,130,246,0.2)',
+    iconColor: '#3b82f6',
+    iconBg: 'rgba(59,130,246,0.1)'
   },
   {
     number: '03',
     icon: 'star',
     title: 'Get Matched Instantly',
     text: 'Our matching engine finds the perfect companions watching the same show. Then you chat.',
-    gradient: 'linear-gradient(135deg, rgba(16,185,129,0.2), rgba(16,185,129,0.05))',
-    glow: 'rgba(16,185,129,0.3)',
+    gradient: 'linear-gradient(135deg, rgba(16,185,129,0.08), rgba(16,185,129,0.02))',
+    border: 'rgba(16,185,129,0.25)',
+    glow: 'rgba(16,185,129,0.2)',
+    iconColor: '#f5a623',
+    iconBg: 'rgba(16,185,129,0.1)'
   },
 ];
 
-const TESTIMONIALS = [
-  {
-    quote: 'PhilixMate completely transformed my weekends. Found an amazing group to watch Dune 2 with — we still meet every month!',
-    name: 'Sarah Johnson',
-    role: 'Film Enthusiast',
-    initials: 'SJ',
-    gradient: 'linear-gradient(135deg,#e8102a,#ff5f6a)',
-    stars: 5,
-  },
-  {
-    quote: 'I travel constantly for work and hate going to theaters alone. The solo match feature is genuinely life-changing.',
-    name: 'Marcus T.',
-    role: 'Frequent Traveler',
-    initials: 'MT',
-    gradient: 'linear-gradient(135deg,#3b82f6,#6366f1)',
-    stars: 5,
-  },
-  {
-    quote: 'The UI is absolutely stunning and finding a match is instantaneous. This feels like a premium Netflix feature.',
-    name: 'Priya Kapoor',
-    role: 'UX Designer',
-    initials: 'PK',
-    gradient: 'linear-gradient(135deg,#10b981,#06b6d4)',
-    stars: 5,
-  },
-];
-
-const GENRES = [
-  { icon: 'fire', name: 'Action' },
-  { icon: 'comedy', name: 'Comedy' },
-  { icon: 'drama', name: 'Drama' },
-  { icon: 'horror', name: 'Horror' },
-  { icon: 'romance', name: 'Romance' },
-  { icon: 'rocket', name: 'Sci-Fi' },
-  { icon: 'thriller', name: 'Thriller' },
-  { icon: 'anime', name: 'Anime' },
-  { icon: 'marvel', name: 'Marvel' },
-  { icon: 'movie', name: 'Indie' },
-];
-
-const STATS = [
-  { value: '50K+',  label: 'Active Users',     icon: 'group' },
-  { value: '200K+', label: 'Matches Made',      icon: 'star' },
-  { value: '120+',  label: 'Cities Worldwide',  icon: 'globe' },
-  { value: '4.9',   label: 'Average Rating',    icon: 'star' },
+const BUILT_FOR_LOVERS = [
+  { icon: 'popcorn', title: 'No More Watching Alone', desc: 'Meet people who already have the same movie plan.' },
+  { icon: 'movie', title: 'Movie-First Matching', desc: 'Matches are based on movie, theatre and showtime—not random profiles.' },
+  { icon: 'group', title: 'Growing Community', desc: 'Every new member helps create more movie experiences.' },
+  { icon: 'rocket', title: 'Just Getting Started', desc: 'PhilixMate is growing, and every early user helps shape the future of the platform.' }
 ];
 
 // ── Particle Stars Background ─────────────────────────────────────────────────
@@ -158,7 +144,7 @@ const SectionHeader = ({ eyebrow, title, subtitle }) => {
 // ── Main Home Component ───────────────────────────────────────────────────────
 const Home = () => {
   const navigate = useNavigate();
-  const [activeGenre, setActiveGenre] = useState(null);
+  const { user } = useAuth();
 
   return (
     <div style={{ background: '#05050a', minHeight: '100vh', color: '#f0f0fa' }}>
@@ -252,7 +238,7 @@ const Home = () => {
             animation: 'slideUp 0.8s cubic-bezier(0.16,1,0.3,1) 0.25s both',
           }}>
             Match with film lovers watching the same movie at the same cinema.
-            Solo companion, group match, or a movie date — your call.
+            Solo companion or group match — your call.
           </p>
 
           {/* CTAs */}
@@ -265,36 +251,18 @@ const Home = () => {
             <button
               id="hero-get-started"
               className="btn btn-primary btn-lg"
-              onClick={() => navigate('/signup')}
+              onClick={() => navigate(user ? '/dashboard' : '/signup')}
               style={{ borderRadius: 9999, minWidth: 180 }}
             >
               Start Matching Free
             </button>
             <button
               className="btn btn-secondary btn-lg"
-              onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+              onClick={() => document.getElementById('why-choose-us')?.scrollIntoView({ behavior: 'smooth' })}
               style={{ borderRadius: 9999 }}
             >
-              See How It Works
+              Learn More
             </button>
-          </div>
-
-          {/* Trust indicators */}
-          <div style={{
-            display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 24,
-            marginTop: 52, flexWrap: 'wrap',
-            animation: 'fadeIn 1s ease 0.6s both',
-          }}>
-            {[
-              { val: '50K+', label: 'Users' },
-              { val: '200K+', label: 'Matches' },
-              { val: '4.9 ★', label: 'Rating' },
-            ].map((s, i) => (
-              <div key={i} style={{ textAlign: 'center' }}>
-                <p style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1.4rem', color: '#f0f0fa', letterSpacing: '-0.02em' }}>{s.val}</p>
-                <p style={{ fontSize: '0.78rem', color: '#6b6b85', fontWeight: 500 }}>{s.label}</p>
-              </div>
-            ))}
           </div>
         </div>
 
@@ -311,31 +279,60 @@ const Home = () => {
         </div>
       </header>
 
-      {/* ═══ STATS BAR ══════════════════════════════════════════════════════ */}
-      <div style={{ background: 'rgba(255,255,255,0.03)', borderTop: '1px solid rgba(255,255,255,0.07)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-        <div className="section-container">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 0 }}>
-            {STATS.map((s, i) => (
-              <div key={i} style={{
-                padding: '28px 24px', textAlign: 'center',
-                borderRight: i < STATS.length - 1 ? '1px solid rgba(255,255,255,0.07)' : 'none',
-              }}>
-                <div style={{ fontSize: '1.5rem', marginBottom: 4, display: 'flex', justifyContent: 'center' }} aria-hidden="true">
-                  <PremiumIcon name={s.icon} size={32} color="#f5a623" />
-                </div>
-                <p style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1.75rem', color: '#f0f0fa', letterSpacing: '-0.03em', lineHeight: 1 }}>{s.value}</p>
-                <p style={{ fontSize: '0.8125rem', color: '#6b6b85', marginTop: 4, fontWeight: 500 }}>{s.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ═══ HOW IT WORKS ══════════════════════════════════════════════════ */}
-      <section id="how-it-works" style={{ padding: '100px 0' }}>
+      {/* ═══ SECTION 1: WHY CHOOSE US ════════════════════════════════════ */}
+      <section id="why-choose-us" style={{ padding: '100px 0', borderTop: '1px solid rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
         <div className="section-container">
           <SectionHeader
-            eyebrow="Simple & Instant"
+            eyebrow="✨ Why Choose PhilixMate?"
+            title="Everything you need to find the perfect movie companion—all in one place."
+          />
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24 }}>
+            {WHY_CHOOSE_US.map((item, i) => {
+              const ref = useReveal();
+              return (
+                <div key={i} ref={ref} className="reveal" style={{ animationDelay: `${i * 80}ms` }}>
+                  <div
+                    className="glass-card glass-card-hover"
+                    style={{
+                      height: '100%',
+                      padding: '32px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 16,
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      border: '1px solid rgba(255, 255, 255, 0.06)',
+                      borderRadius: '24px',
+                      transition: 'all 300ms cubic-bezier(0.16, 1, 0.3, 1)'
+                    }}
+                  >
+                    <div style={{
+                      width: 48, height: 48, borderRadius: 14,
+                      background: 'rgba(232,16,42,0.1)',
+                      border: '1px solid rgba(232,16,42,0.2)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}>
+                      <PremiumIcon name={item.icon} size={24} color="#ff6b7a" />
+                    </div>
+                    <h3 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1.2rem', color: '#f0f0fa', margin: 0 }}>
+                      {item.title}
+                    </h3>
+                    <p style={{ fontSize: '0.9rem', color: '#6b6b85', lineHeight: 1.55, margin: 0 }}>
+                      {item.desc}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══ SECTION 2: THREE STEPS MATCH ══════════════════════════════════ */}
+      <section style={{ padding: '100px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+        <div className="section-container">
+          <SectionHeader
+            eyebrow="SIMPLE & INSTANT"
             title="Three steps to your perfect cinema match"
             subtitle="From choosing your show to chatting with your match — the whole process takes under a minute."
           />
@@ -353,50 +350,53 @@ const Home = () => {
                   <div
                     style={{
                       background: step.gradient,
-                      border: '1px solid rgba(255,255,255,0.08)',
+                      border: `1px solid ${step.border}`,
                       borderRadius: 24,
                       padding: 32,
                       height: '100%',
                       position: 'relative',
                       overflow: 'hidden',
-                      transition: 'transform 300ms cubic-bezier(0.16,1,0.3,1), box-shadow 300ms ease',
+                      transition: 'transform 300ms cubic-bezier(0.16,1,0.3,1), box-shadow 300ms ease, border-color 300ms ease',
                       cursor: 'default',
                     }}
                     onMouseEnter={e => {
-                      e.currentTarget.style.transform = 'translateY(-4px)';
-                      e.currentTarget.style.boxShadow = `0 12px 40px ${step.glow}30`;
+                      e.currentTarget.style.transform = 'translateY(-6px)';
+                      e.currentTarget.style.boxShadow = `0 16px 40px ${step.glow}25`;
+                      e.currentTarget.style.borderColor = step.iconColor;
                     }}
                     onMouseLeave={e => {
                       e.currentTarget.style.transform = 'none';
                       e.currentTarget.style.boxShadow = 'none';
+                      e.currentTarget.style.borderColor = step.border;
                     }}
                   >
                     {/* Step number watermark */}
                     <div style={{
-                      position: 'absolute', top: -10, right: 20,
+                      position: 'absolute', top: 12, right: 24,
                       fontFamily: 'Outfit,sans-serif', fontWeight: 900,
-                      fontSize: '5rem', color: 'rgba(255,255,255,0.04)',
+                      fontSize: '5rem', color: 'rgba(255,255,255,0.025)',
                       lineHeight: 1, userSelect: 'none', pointerEvents: 'none',
                     }} aria-hidden="true">
                       {step.number}
                     </div>
 
                     <div style={{
-                      width: 56, height: 56, borderRadius: 16,
-                      background: 'rgba(255,255,255,0.08)',
+                      width: 48, height: 48, borderRadius: 14,
+                      background: step.iconBg,
+                      border: `1px solid ${step.border}`,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '1.75rem', marginBottom: 20,
+                      marginBottom: 20,
                     }}>
-                      <PremiumIcon name={step.icon} size={32} color="#f5a623" />
+                      <PremiumIcon name={step.icon} size={20} color={step.iconColor} />
                     </div>
                     <h3 style={{
-                      fontFamily: 'Outfit,sans-serif', fontWeight: 700,
+                      fontFamily: 'Outfit,sans-serif', fontWeight: 800,
                       fontSize: '1.25rem', color: '#f0f0fa',
-                      marginBottom: 10, letterSpacing: '-0.02em',
+                      marginBottom: 12, letterSpacing: '-0.02em',
                     }}>
                       {step.title}
                     </h3>
-                    <p style={{ color: '#6b6b85', lineHeight: 1.65, fontSize: '0.9375rem' }}>
+                    <p style={{ color: '#6b6b85', lineHeight: 1.6, fontSize: '0.9rem', margin: 0 }}>
                       {step.text}
                     </p>
                   </div>
@@ -407,94 +407,85 @@ const Home = () => {
         </div>
       </section>
 
-      {/* ═══ GENRE EXPLORER ════════════════════════════════════════════════ */}
-      <section style={{ padding: '80px 0', background: 'rgba(255,255,255,0.015)' }}>
+      {/* ═══ SECTION 3: HOW IT WORKS ════════════════════════════════════ */}
+      <section style={{ padding: '100px 0', background: 'rgba(255,255,255,0.01)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
         <div className="section-container">
           <SectionHeader
-            eyebrow="For Every Fan"
-            title="Whatever you love, we've got a match for you"
+            eyebrow="🎯 How PhilixMate Works"
+            title="Get matched and chat in four simple steps"
           />
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
-            {GENRES.map((g, i) => {
-              const isActive = activeGenre === g.name;
-              return (
-                <button
-                  key={i}
-                  onClick={() => setActiveGenre(isActive ? null : g.name)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    padding: '10px 20px', borderRadius: 9999,
-                    border: `1px solid ${isActive ? 'rgba(232,16,42,0.5)' : 'rgba(255,255,255,0.1)'}`,
-                    background: isActive ? 'rgba(232,16,42,0.15)' : 'rgba(255,255,255,0.04)',
-                    color: isActive ? '#ff6b7a' : '#a8a8c0',
-                    fontSize: '0.9rem', fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 200ms ease',
-                    boxShadow: isActive ? '0 0 16px rgba(232,16,42,0.25)' : 'none',
-                  }}
-                  onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#f0f0fa'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'; }}}
-                  onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = '#a8a8c0'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; }}}
-                >
-                  <PremiumIcon name={g.icon} size={18} color="currentColor" />
-                  {g.name}
-                </button>
-              );
-            })}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 900, margin: '0 auto' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 24, alignItems: 'center', position: 'relative' }}>
+              {STEPS_HOW_IT_WORKS.map((step, i) => {
+                const ref = useReveal();
+                return (
+                  <div key={i} ref={ref} className="reveal" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', animationDelay: `${i * 100}ms` }}>
+                    <div style={{
+                      width: 64, height: 64, borderRadius: '50%',
+                      background: 'linear-gradient(135deg, rgba(232,16,42,0.15) 0%, rgba(255,255,255,0.02) 100%)',
+                      border: '1px solid rgba(232,16,42,0.25)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '1.5rem', fontWeight: 800, color: '#ff6b7a',
+                      marginBottom: 16,
+                      boxShadow: '0 8px 24px rgba(232,16,42,0.08)'
+                    }}>
+                      <PremiumIcon name={step.icon} size={24} color="#ff6b7a" />
+                    </div>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#e8102a', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Step {step.step}</span>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#f0f0fa', marginBottom: 8 }}>{step.title}</h4>
+                    <p style={{ fontSize: '0.82rem', color: '#6b6b85', lineHeight: 1.4, margin: 0 }}>{step.text}</p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ═══ TESTIMONIALS ══════════════════════════════════════════════════ */}
-      <section style={{ padding: '100px 0' }}>
+      {/* ═══ SECTION 3: BUILT FOR MOVIE LOVERS ══════════════════════════════ */}
+      <section style={{ padding: '100px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
         <div className="section-container">
           <SectionHeader
-            eyebrow="Loved by thousands"
-            title="Real people. Real movie magic."
-            subtitle="Join over 50,000 film lovers who've found their perfect cinema companion."
+            eyebrow="❤️ Built for Movie Lovers"
+            title="Designed around cinema, not swipe profiles"
           />
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
-            {TESTIMONIALS.map((t, i) => {
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 24 }}>
+            {BUILT_FOR_LOVERS.map((item, i) => {
               const ref = useReveal();
               return (
-                <div
-                  key={i}
-                  ref={ref}
-                  className="reveal"
-                  style={{ animationDelay: `${i * 120}ms` }}
-                >
+                <div key={i} ref={ref} className="reveal" style={{ animationDelay: `${i * 100}ms` }}>
                   <div
-                    className="glass-card glass-card-hover"
-                    style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 20 }}
+                    style={{
+                      height: '100%',
+                      padding: '28px',
+                      background: 'rgba(255,255,255,0.015)',
+                      border: '1px solid rgba(255,255,255,0.05)',
+                      borderRadius: '24px',
+                      transition: 'all 300ms ease',
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.borderColor = 'rgba(232,16,42,0.25)';
+                      e.currentTarget.style.background = 'rgba(232,16,42,0.02)';
+                      e.currentTarget.style.transform = 'translateY(-4px)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.borderColor = 'rgba(255,255,255,0.05)';
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.015)';
+                      e.currentTarget.style.transform = 'none';
+                    }}
                   >
-                    {/* Stars */}
-                    <div style={{ display: 'flex', gap: 3 }}>
-                      {Array.from({ length: t.stars }).map((_, si) => (
-                        <span key={si} style={{ color: '#f5a623', fontSize: '0.875rem' }}>★</span>
-                      ))}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                      <PremiumIcon name={item.icon} size={20} color="#ff6b7a" />
+                      <h3 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 700, fontSize: '1.05rem', color: '#f0f0fa', margin: 0 }}>
+                        {item.title}
+                      </h3>
                     </div>
-
-                    {/* Quote */}
-                    <p style={{ color: '#a8a8c0', lineHeight: 1.7, fontSize: '0.9375rem', flex: 1, fontStyle: 'italic' }}>
-                      "{t.quote}"
+                    <p style={{ fontSize: '0.85rem', color: '#6b6b85', lineHeight: 1.5, margin: 0 }}>
+                      {item.desc}
                     </p>
-
-                    {/* Author */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{
-                        width: 40, height: 40, borderRadius: '50%',
-                        background: t.gradient,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '0.875rem', fontWeight: 700, color: 'white',
-                        flexShrink: 0,
-                      }}>
-                        {t.initials}
-                      </div>
-                      <div>
-                        <p style={{ fontWeight: 700, color: '#f0f0fa', fontSize: '0.9rem' }}>{t.name}</p>
-                        <p style={{ fontSize: '0.78rem', color: '#6b6b85' }}>{t.role}</p>
-                      </div>
-                    </div>
                   </div>
                 </div>
               );
@@ -503,65 +494,61 @@ const Home = () => {
         </div>
       </section>
 
-      {/* ═══ CTA SECTION ══════════════════════════════════════════════════ */}
+      {/* ═══ SECTION 4: CTA SECTION ══════════════════════════════════════ */}
       <section style={{ padding: '100px 0' }}>
         <div className="section-container">
           {(() => {
             const ref = useReveal();
             return (
               <div ref={ref} className="reveal" style={{
-                background: 'linear-gradient(135deg, rgba(232,16,42,0.12) 0%, rgba(20,20,40,0.9) 50%, rgba(59,130,246,0.06) 100%)',
+                background: 'linear-gradient(135deg, rgba(232,16,42,0.08) 0%, rgba(20,20,40,0.9) 50%, rgba(59,130,246,0.04) 100%)',
                 border: '1px solid rgba(232,16,42,0.2)',
                 borderRadius: 28,
-                padding: 'clamp(40px, 8vw, 72px)',
+                padding: '72px 32px',
                 textAlign: 'center',
                 position: 'relative',
                 overflow: 'hidden',
               }}>
-                {/* Background glow */}
                 <div style={{
                   position: 'absolute', top: '50%', left: '50%',
                   transform: 'translate(-50%, -50%)',
                   width: 600, height: 400,
-                  background: 'radial-gradient(ellipse, rgba(232,16,42,0.18) 0%, transparent 70%)',
+                  background: 'radial-gradient(ellipse, rgba(232,16,42,0.15) 0%, transparent 70%)',
                   filter: 'blur(60px)', pointerEvents: 'none',
                 }} aria-hidden="true" />
 
                 <div style={{ position: 'relative', zIndex: 1 }}>
-                  <p style={{
-                    fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.14em',
-                    color: '#e8102a', textTransform: 'uppercase', marginBottom: 16,
-                    display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center'
-                  }}>
-                    <PremiumIcon name="popcorn" size={20} color="#e8102a" />
-                    Your Movie Companion Awaits
-                  </p>
                   <h2 style={{
-                    fontFamily: 'Outfit,sans-serif', fontWeight: 900,
+                    fontFamily: 'Outfit,sans-serif',
+                    fontWeight: 900,
                     fontSize: 'clamp(2rem, 4vw, 3rem)',
-                    color: '#f0f0fa', letterSpacing: '-0.03em', marginBottom: 16,
+                    color: '#f0f0fa',
+                    letterSpacing: '-0.03em',
+                    marginBottom: 8
                   }}>
-                    Ready to grab your popcorn?
+                    Ready for Your Next Movie?
                   </h2>
-                  <p style={{ color: '#6b6b85', fontSize: '1.0625rem', maxWidth: 480, margin: '0 auto 36px', lineHeight: 1.65 }}>
-                    Join PhilixMate today. Free forever, no credit card required.
+                  <p style={{ color: '#6b6b85', fontSize: '1rem', maxWidth: 480, margin: '0 auto 32px', lineHeight: 1.6 }}>
+                    Find someone who shares your excitement for the same film.
                   </p>
-                  <div style={{ display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', justifyContent: 'center' }}>
                     <button
-                      id="cta-join-btn"
+                      id="cta-find-match-btn"
                       className="btn btn-primary btn-xl"
-                      onClick={() => navigate('/signup')}
-                      style={{ borderRadius: 9999 }}
+                      onClick={() => navigate(user ? '/dashboard' : '/signup')}
+                      style={{
+                        borderRadius: 9999,
+                        padding: '14px 36px',
+                        fontWeight: 700,
+                        fontSize: '1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        boxShadow: '0 8px 32px rgba(232,16,42,0.2)'
+                      }}
                     >
-                      Join PhilixMate — It's Free
+                      🎬 Find My Match
                     </button>
-                    <Link
-                      to="/login"
-                      className="btn btn-secondary btn-xl"
-                      style={{ borderRadius: 9999, textDecoration: 'none' }}
-                    >
-                      Sign In
-                    </Link>
                   </div>
                 </div>
               </div>

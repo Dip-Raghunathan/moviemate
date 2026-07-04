@@ -18,5 +18,7 @@ router.get('/follow/counts', socialController.getFollowCounts);
 router.get('/notifications', socialController.getNotifications);
 router.post('/notifications/:id/read', socialController.markNotificationRead);
 router.post('/notifications/read-all', socialController.markAllNotificationsRead);
+router.delete('/notifications/:id', socialController.deleteNotification);
+router.delete('/notifications', socialController.clearAllNotifications);
 
 module.exports = router;

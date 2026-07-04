@@ -575,3 +575,30 @@
   /* Pointer cursor for interactive */
   .clickable { cursor: pointer; }
 }
+
+/* Custom Select styles to prevent text overflow or clipping on mobile/Safari/Chrome */
+select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Let's make sure select option elements have a dark background so they are readable on Windows/Linux/Mac */
+select option {
+  background-color: #0c0c16 !important;
+  color: #f0f0fa !important;
+  padding: 12px !important;
+}
+
+/* Custom premium responsive utilities */
+@media (max-width: 768px) {
+  /* Increase padding inside select elements so text isn't cut off */
+  select {
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+    font-size: 0.875rem !important;
+  }
+}

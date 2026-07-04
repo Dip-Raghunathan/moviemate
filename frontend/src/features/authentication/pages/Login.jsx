@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../core/contexts/AuthContext';
 import Spinner from '../../../shared/components/ui/Spinner';
 import { PremiumIcon } from '../../../shared/components/icons/IconComponents';
+import * as authService from '../../../services/authService';
 
 const FilmIcon = () => (
   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -31,20 +32,53 @@ const Login = () => {
   const [loading,     setLoading]     = useState(false);
   const [emailFocus,  setEmailFocus]  = useState(false);
   const [pwdFocus,    setPwdFocus]    = useState(false);
+
+  const location = useLocation();
+  const [success,     setSuccess]     = useState(location.state?.message || '');
+  const [unverified,  setUnverified]  = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
+    setUnverified(false);
     setLoading(true);
     try {
       await login(email, password);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
+      const errMsg = err.response?.data?.message || 'Login failed. Please check your credentials.';
+      setError(errMsg);
+      if (errMsg.includes('verify your email')) {
+        setUnverified(true);
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    if (!email) {
+      setError('Please enter your email address first.');
+      return;
+    }
+    setError('');
+    setSuccess('');
+    setResendLoading(true);
+    try {
+      await authService.resendOTP(email);
+      setSuccess('Verification OTP sent successfully! Redirecting you to Verify Email page...');
+      setTimeout(() => {
+        navigate(`/verify-email?email=${encodeURIComponent(email)}`);
+      }, 2500);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to resend code. Please try again.');
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -102,7 +136,7 @@ const Login = () => {
             <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg,#e8102a,#ff4b5e)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 20px rgba(232,16,42,0.4)' }}>
               <FilmIcon />
             </div>
-            <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1.25rem', color: '#f0f0fa' }}>VX ShowMate<span style={{ color: '#e8102a' }}>X</span></span>
+            <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1.25rem', color: '#f0f0fa' }}>PhilixMate</span>
           </div>
 
           {/* Bottom quote */}
@@ -142,7 +176,7 @@ const Login = () => {
             <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#e8102a,#ff4b5e)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
               <FilmIcon />
             </div>
-            <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1.125rem', color: '#f0f0fa' }}>VX ShowMate<span style={{ color: '#e8102a' }}>X</span></span>
+            <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1.125rem', color: '#f0f0fa' }}>PhilixMate</span>
           </div>
 
           {/* Header */}
@@ -156,15 +190,53 @@ const Login = () => {
           </div>
 
           {/* Error */}
+          {success && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)',
+              borderRadius: 12, padding: '12px 14px', marginBottom: 20,
+              animation: 'scaleIn 0.3s ease forwards',
+            }}>
+              <PremiumIcon name="check" size={18} color="#34d399" />
+              <p style={{ color: '#34d399', fontSize: '0.875rem', lineHeight: 1.4 }}>{success}</p>
+            </div>
+          )}
+
           {error && (
             <div style={{
-              display: 'flex', alignItems: 'flex-start', gap: 10,
+              display: 'flex', flexDirection: 'column', gap: 10,
               background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)',
               borderRadius: 12, padding: '12px 14px', marginBottom: 20,
               animation: 'scaleIn 0.3s ease forwards',
             }}>
-              <PremiumIcon name="warning" size={18} color="#f87171" style={{ marginTop: 1 }} />
-              <p style={{ color: '#f87171', fontSize: '0.875rem', lineHeight: 1.4 }}>{error}</p>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <PremiumIcon name="warning" size={18} color="#f87171" style={{ marginTop: 1 }} />
+                <p style={{ color: '#f87171', fontSize: '0.875rem', lineHeight: 1.4 }}>{error}</p>
+              </div>
+              {unverified && (
+                <button
+                  type="button"
+                  onClick={handleResendOTP}
+                  disabled={resendLoading}
+                  style={{
+                    alignSelf: 'flex-start',
+                    background: 'rgba(232,16,42,0.1)',
+                    border: '1px solid rgba(232,16,42,0.3)',
+                    borderRadius: 8,
+                    color: '#ff6b7a',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    padding: '6px 12px',
+                    cursor: 'pointer',
+                    transition: 'all 150ms ease',
+                    marginTop: 4
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(232,16,42,0.2)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(232,16,42,0.1)'}
+                >
+                  {resendLoading ? 'Resending...' : 'Resend Verification OTP'}
+                </button>
+              )}
             </div>
           )}
 

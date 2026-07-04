@@ -1,6 +1,6 @@
 import api from './api';
 
-// prefs: { movie, cinema, date, time, matchType, intent, womenOnly }
+// prefs: { movie, cinema, date, time, matchType, intent, womenOnly, introduction }
 export const startMatch = async (prefs) => {
   const res = await api.post('/rooms/match', prefs);
   return res.data?.data || res.data;
@@ -16,6 +16,11 @@ export const getMyRoom = async () => {
   return res.data?.data || res.data;
 };
 
+export const getUnreviewedRoom = async () => {
+  const res = await api.get('/rooms/unreviewed-room');
+  return res.data?.data || res.data;
+};
+
 export const leaveRoom = async (roomId) => {
   const res = await api.post(`/rooms/${roomId}/leave`);
   return res.data?.data || res.data;
@@ -27,7 +32,17 @@ export const getVacantRooms = async (city) => {
   return res.data?.data || res.data;
 };
 
-export const joinRoom = async (roomId) => {
-  const res = await api.post(`/rooms/${roomId}/join`);
+export const joinRoom = async (roomId, introduction = '') => {
+  const res = await api.post(`/rooms/${roomId}/join`, { introduction });
+  return res.data?.data || res.data;
+};
+
+export const readyForChat = async (roomId) => {
+  const res = await api.post(`/rooms/${roomId}/ready`);
+  return res.data?.data || res.data;
+};
+
+export const leaveIntro = async (roomId) => {
+  const res = await api.post(`/rooms/${roomId}/leave-intro`);
   return res.data?.data || res.data;
 };

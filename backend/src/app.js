@@ -36,10 +36,9 @@ app.use(
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
-// --- Rate Limiting ---
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 mins
-  max: 100, // relaxed limit for developers testing
+  max: env.NODE_ENV === 'development' ? 1000000 : 100, // relaxed limit for developers testing
   handler: (req, res, next, options) => {
     res.status(429).json({
       status: 'fail',
