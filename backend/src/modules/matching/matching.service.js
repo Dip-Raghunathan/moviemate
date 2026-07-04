@@ -141,7 +141,6 @@ class MatchingService {
     const startHour = getShowStartHour(showTiming);
     const startDateTime = new Date(`${date}T${startHour}`);
     const expiryTimestamp = new Date(startDateTime.getTime() + 3 * 60 * 60 * 1000); // 3 hours later
-<<<<<<< HEAD
 
     // 0. If user already owns or is in an active room, return that room immediately (prevent multiple waiting rooms)
     const existingRoom = await Room.findOne({
@@ -152,8 +151,6 @@ class MatchingService {
     if (existingRoom) {
       return { matched: existingRoom.members.length === existingRoom.capacity, created: false, room: existingRoom };
     }
-=======
->>>>>>> f5ebda0e1812514fee77bf0df8348ec57f9ce799
 
     // Fetch blocked relationships
     const blockedRels = await Friend.find({
@@ -162,16 +159,10 @@ class MatchingService {
     });
     const blockedUserIds = blockedRels.map(r => r.user1.toString() === user._id.toString() ? r.user2.toString() : r.user1.toString());
 
-<<<<<<< HEAD
     // 1. Query candidates for EXACT Match (Same Movie, Same City, Same Theatre, Same Date, Same Showtime)
     const exactQuery = {
       movie: normalizedMovie,
       cinema: normalizedCinema,
-=======
-    // Query candidates (match by movie name & city, allowing theater coordination in room)
-    const baseQuery = {
-      movie: normalizedMovie,
->>>>>>> f5ebda0e1812514fee77bf0df8348ec57f9ce799
       city: normalizedCity,
       date,
       showTiming,
@@ -180,7 +171,6 @@ class MatchingService {
       status: { $in: ['Active', 'open'] }
     };
 
-<<<<<<< HEAD
     let candidateRooms = await Room.find(exactQuery).populate('members.user', 'name age gender isPro');
     const validCandidates = [];
 
@@ -207,64 +197,6 @@ class MatchingService {
       if (alreadyMember) {
         return { matched: true, room: matchedRoom };
       }
-=======
-    let candidateRooms = await Room.find(baseQuery).populate('members.user', 'name age gender isPro');
-    const now = new Date();
-    const validCandidates = [];
-
-    for (const r of candidateRooms) {
-      // Auto-expire check
-      const rExpiry = r.expiryTimestamp || new Date(new Date(`${r.date}T${getShowStartHour(r.showTiming)}`).getTime() + 3 * 60 * 60 * 1000);
-      if (now > rExpiry) {
-        r.status = 'Expired';
-        await r.save();
-        emitRoomUpdated(r);
-        continue;
-      }
-
-      // Full check
-      if (r.status === 'Full' || r.status === 'full' || r.members.length >= r.capacity) {
-        if (r.status !== 'Full') {
-          r.status = 'Full';
-          await r.save();
-          emitRoomUpdated(r);
-        }
-        continue;
-      }
-
-      const hasBlockedMember = r.members.some((m) => m.user && blockedUserIds.includes(m.user._id.toString()));
-      if (hasBlockedMember) {
-        continue;
-      }
-
-      if (r.womenOnly && user.gender !== 'female') {
-        continue;
-      }
-      if (normalizedWomenOnly && r.members.some(m => m.gender !== 'female')) {
-        continue;
-      }
-
-      validCandidates.push(r);
-    }
-
-    // Smart Age-Based Matching (Hierarchy: Same age, ±1, ±2, ±3)
-    let matchedRoom = null;
-    for (let ageDiff = 0; ageDiff <= 3; ageDiff++) {
-      matchedRoom = validCandidates.find(r => {
-        const maxDiff = Math.max(...r.members.map(m => m.user ? Math.abs(m.user.age - user.age) : 0));
-        return maxDiff === ageDiff;
-      });
-      if (matchedRoom) {
-        break;
-      }
-    }
-
-    if (matchedRoom) {
-      const alreadyMember = matchedRoom.members.some((m) => m.user._id.toString() === user._id.toString());
-      if (alreadyMember) {
-        return matchedRoom;
-      }
->>>>>>> f5ebda0e1812514fee77bf0df8348ec57f9ce799
 
       // Update stats and activity feed
       const activityMessage = `Someone joined a ${matchedRoom.movie} match`;
@@ -330,16 +262,10 @@ class MatchingService {
           }
         }
       }
-<<<<<<< HEAD
       return { matched: true, room: matchedRoom };
     }
 
     // 2. If no compatible room exists, immediately create a new room and wait
-=======
-      return matchedRoom;
-    }
-
->>>>>>> f5ebda0e1812514fee77bf0df8348ec57f9ce799
     const newRoom = await Room.create({
       movie: normalizedMovie,
       cinema: normalizedCinema,
@@ -369,11 +295,7 @@ class MatchingService {
       : `Someone is looking for a companion for ${newRoom.movie}`;
     await updateStatsAndActivity(newRoom.movie, newRoom.cinema, activityMessage);
 
-<<<<<<< HEAD
     return { matched: false, created: true, room: newRoom };
-=======
-    return newRoom;
->>>>>>> f5ebda0e1812514fee77bf0df8348ec57f9ce799
   }
 
   async getRoom(roomId, userId) {

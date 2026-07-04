@@ -429,7 +429,6 @@ class AuthService {
   }
 
   async sendVerificationEmail(toEmail, otp, userName) {
-<<<<<<< HEAD
     let user = env.SMTP.USER;
     let pass = env.SMTP.PASS;
     let host = env.SMTP.HOST;
@@ -454,8 +453,6 @@ class AuthService {
       }
     }
 
-=======
->>>>>>> f5ebda0e1812514fee77bf0df8348ec57f9ce799
     const transporter = nodemailer.createTransport({
       host,
       port,
@@ -482,43 +479,6 @@ class AuthService {
       from,
       to: toEmail,
       subject: 'Verify your PhilixMate Account',
-<<<<<<< HEAD
-=======
-      html,
-    });
-  }
-
-  async sendResetOTPEmail(toEmail, otp, userName) {
-    const transporter = nodemailer.createTransport({
-      host: env.SMTP.HOST,
-      port: env.SMTP.PORT,
-      secure: env.SMTP.PORT === 465,
-      auth: {
-        user: env.SMTP.USER,
-        pass: env.SMTP.PASS,
-      },
-    });
-
-    const html = `
-      <div style="font-family: 'Outfit', 'Inter', Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #05050a; color: #f0f0fa; padding: 40px 30px; border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 12px 32px rgba(0,0,0,0.4);">
-        <div style="text-align: center; margin-bottom: 24px;">
-          <div style="display: inline-block; width: 48px; height: 48px; border-radius: 14px; background: linear-gradient(135deg,#e8102a,#ff4b5e); line-height: 48px; color: white; font-weight: bold; font-size: 20px; text-align: center;">PM</div>
-          <h2 style="color: #f0f0fa; font-size: 22px; margin-top: 16px; font-weight: 800; letter-spacing: -0.02em; text-align: center;">PhilixMate</h2>
-        </div>
-        <p style="font-size: 15px; color: #a8a8c0; line-height: 1.6; margin-bottom: 24px;">Hi ${userName},</p>
-        <p style="font-size: 15px; color: #a8a8c0; line-height: 1.6; margin-bottom: 24px;">We received a request to reset your password. Use the 6-digit verification code below to reset your password. This code is valid for 10 minutes.</p>
-        <div style="text-align: center; margin: 30px 0;">
-          <span style="font-family: monospace; font-size: 36px; font-weight: 800; color: #ff6b7a; letter-spacing: 6px; padding: 12px 24px; background: rgba(232, 16, 42, 0.08); border: 1px solid rgba(232, 16, 42, 0.25); border-radius: 12px; display: inline-block;">${otp}</span>
-        </div>
-        <p style="color: #6b6b85; font-size: 12px; line-height: 1.5; text-align: center; margin-top: 30px;">If you didn't request a password reset, you can safely ignore this email.</p>
-      </div>
-    `;
-
-    await transporter.sendMail({
-      from: `"${env.SMTP.FROM.split('"')[1] || 'PhilixMate Team'}" <${env.SMTP.FROM.match(/<([^>]+)>/)?.[1] || env.SMTP.FROM}>`,
-      to: toEmail,
-      subject: 'Reset Your PhilixMate Password',
->>>>>>> f5ebda0e1812514fee77bf0df8348ec57f9ce799
       html,
     });
 

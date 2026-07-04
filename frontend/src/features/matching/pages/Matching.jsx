@@ -6,12 +6,9 @@ import Spinner from '../../../shared/components/ui/Spinner';
 import Badge from '../../../shared/components/ui/Badge';
 import { PremiumIcon } from '../../../shared/components/icons/IconComponents';
 import { useAuth } from '../../../core/contexts/AuthContext';
-<<<<<<< HEAD
 import { io } from 'socket.io-client';
 
 const socketUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-=======
->>>>>>> f5ebda0e1812514fee77bf0df8348ec57f9ce799
 
 // ── Radar Animation ────────────────────────────────────────────────────────────
 const RadarAnimation = () => (
@@ -100,15 +97,10 @@ const Matching = () => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [readyLoading, setReadyLoading] = useState(false);
-<<<<<<< HEAD
   const [alternativeRooms, setAlternativeRooms] = useState([]);
   const [altLoading, setAltLoading] = useState(false);
   const wasMatchedRef = useRef(false);
   const socketRef     = useRef(null);
-=======
-  const wasMatchedRef = useRef(false);
-  const pollRef     = useRef(null);
->>>>>>> f5ebda0e1812514fee77bf0df8348ec57f9ce799
   const roomId      = state?.roomId;
 
   useEffect(() => {
@@ -118,22 +110,10 @@ const Matching = () => {
 
     const fetchInitialRoom = async () => {
       try {
-<<<<<<< HEAD
         const { room: initialRoom } = await roomService.getRoom(roomId);
         if (initialRoom) {
           setRoom(initialRoom);
           wasMatchedRef.current = initialRoom.members.length === initialRoom.capacity;
-=======
-        const { room: updatedRoom } = await roomService.getRoom(roomId);
-        if (updatedRoom) {
-          const isMatchedNow = updatedRoom.members.length === updatedRoom.capacity;
-          if (wasMatchedRef.current && !isMatchedNow) {
-            setAlertMessage('Your companion left before chat started.');
-            setTimeout(() => setAlertMessage(''), 5000);
-          }
-          wasMatchedRef.current = isMatchedNow;
-          setRoom(updatedRoom);
->>>>>>> f5ebda0e1812514fee77bf0df8348ec57f9ce799
         }
       } catch (err) {
         setError(err.response?.data?.message || 'Could not load room.');
@@ -213,11 +193,7 @@ const Matching = () => {
     if (room && room.members && room.members.length === room.capacity) {
       const allReady = room.members.every(m => m.readyToChat === true);
       if (allReady) {
-<<<<<<< HEAD
         navigate(`/chat/${room.id || room._id}`);
-=======
-        navigate(`/chat/${room.id}`);
->>>>>>> f5ebda0e1812514fee77bf0df8348ec57f9ce799
       }
     }
   }, [room, navigate]);
