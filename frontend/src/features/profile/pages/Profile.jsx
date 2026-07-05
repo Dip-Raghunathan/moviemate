@@ -389,9 +389,9 @@ const Profile = () => {
 
               {/* Banner Theme Customizable Selector */}
               {isOwnProfile && (
-                <div style={{ marginTop: 24, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6b6b85', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Banner Theme:</span>
-                  <div style={{ display: 'flex', gap: 6 }}>
+                <div style={{ marginTop: 24, display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', flexDirection: 'column' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6b6b85', textTransform: 'uppercase', letterSpacing: '0.08em', flexShrink: 0 }}>Banner Theme:</span>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     {Object.keys(BANNERS).map(theme => (
                       <button
                         key={theme}
