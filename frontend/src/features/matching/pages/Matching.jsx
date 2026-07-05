@@ -294,7 +294,7 @@ const Matching = () => {
     if (room && room.members && room.members.length === room.capacity) {
       const allReady = room.members.every(m => m.readyToChat === true);
       if (allReady) {
-        navigate(`/chat/${room.id || room._id}`);
+        navigate(`/chat/${room.id || room._id || roomId}`);
       }
     }
   }, [room, navigate]);
@@ -786,8 +786,8 @@ const Matching = () => {
                 onClick={async () => {
                   setReadyLoading(true);
                   try {
-                    await roomService.readyForChat(room.id || room._id);
-                    navigate(`/chat/${room.id || room._id}`);
+                    await roomService.readyForChat(room.id || room._id || roomId);
+                    navigate(`/chat/${room.id || room._id || roomId}`);
                   } catch (err) {
                     setError('Could not update status. Please try again.');
                   } finally {
@@ -834,7 +834,7 @@ const Matching = () => {
                 type="button"
                 onClick={async () => {
                   try {
-                    await roomService.leaveIntro(room.id || room._id);
+                    await roomService.leaveIntro(room.id || room._id || roomId);
                     navigate('/dashboard');
                   } catch (err) {
                     setError('Could not leave match. Please try again.');
