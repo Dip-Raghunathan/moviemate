@@ -142,9 +142,14 @@ class MatchingService {
     const startDateTime = new Date(`${date}T${startHour}`);
     const expiryTimestamp = new Date(startDateTime.getTime() + 3 * 60 * 60 * 1000); // 3 hours later
 
-    // 0. If user already owns or is in an active room, return that room immediately (prevent multiple waiting rooms)
+    // 0. If user already owns or is in an active room for the exact same session, return that room immediately
     const existingRoom = await Room.findOne({
       'members.user': user._id,
+      movie: normalizedMovie,
+      city: normalizedCity,
+      cinema: normalizedCinema,
+      date,
+      showTiming,
       status: { $in: ['Active', 'open', 'Full'] }
     }).populate('members.user', 'name age gender isPro');
 
@@ -574,13 +579,7 @@ class MatchingService {
       throw new BadRequestError('Session is already full', 'SESSION_FULL');
     }
 
-    const activeRoom = await Room.findOne({ 'members.user': user._id, status: { $in: ['Active', 'open', 'Full'] } });
-    if (activeRoom) {
-      if (activeRoom._id.toString() === roomId.toString()) {
-        return activeRoom;
-      }
-      await this.leaveRoom(activeRoom._id, user._id);
-    }
+
 
     if (room.womenOnly && user.gender !== 'female') {
       throw new BadRequestError('This session is safety mode restricted to women only', 'WOMEN_ONLY_RESTRICTION');
