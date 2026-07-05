@@ -37,6 +37,11 @@ function isAllowedOrigin(origin, clientUrl) {
     return true;
   }
 
+  // Allow custom domain philixmate.in and its subdomains
+  if (normalizedOrigin === 'https://philixmate.in' || normalizedOrigin === 'https://www.philixmate.in' || normalizedOrigin.endsWith('.philixmate.in')) {
+    return true;
+  }
+
   return false;
 }
 

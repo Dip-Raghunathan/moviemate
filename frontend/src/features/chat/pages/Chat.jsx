@@ -70,7 +70,9 @@ const ChatMessage = ({ msg, isMine, senderName, senderInitial, idx, onReact, onP
           fontSize: '0.9375rem',
           lineHeight: 1.5,
           boxShadow: isMine ? '0 4px 16px rgba(232,16,42,0.2)' : '0 2px 8px rgba(0,0,0,0.3)',
-          position: 'relative'
+          position: 'relative',
+          wordBreak: 'break-word',
+          overflowWrap: 'anywhere'
         }}>
           {msg.text}
 
@@ -208,6 +210,8 @@ const Chat = () => {
 
     socketInstance.on('connect', () => {
       socketInstance.emit('join_room', roomId);
+      loadRoom();
+      pollMessages();
     });
 
     socketInstance.on('message', (message) => {
@@ -236,9 +240,18 @@ const Chat = () => {
       }
     }, 2500);
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadRoom();
+        pollMessages();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       cancelled = true;
       clearInterval(pollRef.current);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (socketInstance) {
         socketInstance.emit('leave_room', roomId);
         socketInstance.disconnect();
@@ -331,7 +344,7 @@ const Chat = () => {
   }
 
   return (
-    <div style={{ background: '#05050a', height: '100vh', display: 'flex', flexDirection: 'column', color: '#f0f0fa', overflow: 'hidden' }}>
+    <div style={{ background: '#05050a', height: '100dvh', display: 'flex', flexDirection: 'column', color: '#f0f0fa', overflow: 'hidden' }}>
 
       {/* ── Top Bar ── */}
       <header style={{

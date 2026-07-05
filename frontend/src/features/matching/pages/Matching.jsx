@@ -179,7 +179,10 @@ const Matching = () => {
     });
     socketRef.current = socket;
 
-    socket.emit('join_room', roomId);
+    socket.on('connect', () => {
+      socket.emit('join_room', roomId);
+      fetchInitialRoom(); // Re-sync state with backend on socket connection/reconnection
+    });
 
     socket.on('room_updated', (updatedRoom) => {
       if (updatedRoom) {
@@ -232,9 +235,17 @@ const Matching = () => {
       }
     }, 2500);
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchInitialRoom();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       clearTimeout(searchTimer);
       clearInterval(pollInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (socketRef.current) {
         socketRef.current.emit('leave_room', roomId);
         socketRef.current.disconnect();
@@ -641,6 +652,7 @@ const Matching = () => {
                             
                             <button
                               type="button"
+                              disabled={searching}
                               onClick={async () => {
                                 try {
                                   setSearching(true);
@@ -660,12 +672,13 @@ const Matching = () => {
                                 fontSize: '0.8rem',
                                 fontWeight: 700,
                                 padding: '6px 14px',
-                                cursor: 'pointer',
+                                cursor: searching ? 'not-allowed' : 'pointer',
+                                opacity: searching ? 0.6 : 1,
                                 transition: 'all 150ms ease',
                                 flexShrink: 0
                               }}
-                              onMouseEnter={e => { e.currentTarget.style.background = '#e8102a'; e.currentTarget.style.color = 'white'; }}
-                              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(232,16,42,0.1)'; e.currentTarget.style.color = '#ff6b7a'; }}
+                              onMouseEnter={e => { if (!searching) { e.currentTarget.style.background = '#e8102a'; e.currentTarget.style.color = 'white'; } }}
+                              onMouseLeave={e => { if (!searching) { e.currentTarget.style.background = 'rgba(232,16,42,0.1)'; e.currentTarget.style.color = '#ff6b7a'; } }}
                             >
                               Join
                             </button>

@@ -1731,6 +1731,7 @@ const Dashboard = () => {
             <div style={{ display: 'flex', gap: 12 }}>
               <button
                 type="button"
+                disabled={loading}
                 onClick={() => proceedWithIntro(true)}
                 style={{
                   flex: 1,
@@ -1741,7 +1742,8 @@ const Dashboard = () => {
                   color: '#a8a8c0',
                   fontWeight: 700,
                   fontSize: '0.9rem',
-                  cursor: 'pointer',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.6 : 1,
                   transition: 'all 200ms ease'
                 }}
               >
@@ -1749,6 +1751,7 @@ const Dashboard = () => {
               </button>
               <button
                 type="button"
+                disabled={loading}
                 onClick={() => proceedWithIntro(false)}
                 style={{
                   flex: 1,
@@ -1759,11 +1762,16 @@ const Dashboard = () => {
                   color: 'white',
                   fontWeight: 700,
                   fontSize: '0.9rem',
-                  cursor: 'pointer',
-                  transition: 'all 200ms ease'
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  opacity: loading ? 0.6 : 1,
+                  transition: 'all 200ms ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8
                 }}
               >
-                Continue
+                {loading ? <Spinner size="sm" color="white" /> : 'Continue'}
               </button>
             </div>
           </div>

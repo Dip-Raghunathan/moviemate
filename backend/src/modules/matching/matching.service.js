@@ -405,6 +405,25 @@ class MatchingService {
   }
 
   async leaveRoom(roomId, userId) {
+    const maxRetries = 3;
+    let attempt = 0;
+
+    while (attempt < maxRetries) {
+      attempt++;
+      try {
+        return await this._executeLeaveRoom(roomId, userId);
+      } catch (error) {
+        if (error.name === 'VersionError' && attempt < maxRetries) {
+          console.warn(`[Matching Concurrency] Version conflict on leaveRoom. Retrying attempt ${attempt}/${maxRetries}...`);
+          await new Promise((resolve) => setTimeout(resolve, Math.random() * 150 + 50));
+          continue;
+        }
+        throw error;
+      }
+    }
+  }
+
+  async _executeLeaveRoom(roomId, userId) {
     const room = await Room.findById(roomId);
     if (!room) {
       throw new NotFoundError('Room not found', 'ROOM_NOT_FOUND');
@@ -514,6 +533,25 @@ class MatchingService {
   }
 
   async joinRoom(roomId, user, introduction = '') {
+    const maxRetries = 3;
+    let attempt = 0;
+
+    while (attempt < maxRetries) {
+      attempt++;
+      try {
+        return await this._executeJoinRoom(roomId, user, introduction);
+      } catch (error) {
+        if (error.name === 'VersionError' && attempt < maxRetries) {
+          console.warn(`[Matching Concurrency] Version conflict on joinRoom. Retrying attempt ${attempt}/${maxRetries}...`);
+          await new Promise((resolve) => setTimeout(resolve, Math.random() * 150 + 50));
+          continue;
+        }
+        throw error;
+      }
+    }
+  }
+
+  async _executeJoinRoom(roomId, user, introduction = '') {
     const room = await Room.findById(roomId);
     if (!room) {
       throw new NotFoundError('Session not found', 'SESSION_NOT_FOUND');
@@ -527,17 +565,20 @@ class MatchingService {
       throw new BadRequestError('This session has already expired', 'SESSION_EXPIRED');
     }
 
-    if (room.status === 'Full' || room.status === 'full' || room.members.length >= room.capacity) {
-      throw new BadRequestError('Session is already full', 'SESSION_FULL');
-    }
-
     const alreadyMember = room.members.some((m) => m.user.toString() === user._id.toString());
     if (alreadyMember) {
       return room;
     }
 
-    const activeRoom = await Room.findOne({ 'members.user': user._id, status: { $in: ['Active', 'open'] } });
+    if (room.status === 'Full' || room.status === 'full' || room.members.length >= room.capacity) {
+      throw new BadRequestError('Session is already full', 'SESSION_FULL');
+    }
+
+    const activeRoom = await Room.findOne({ 'members.user': user._id, status: { $in: ['Active', 'open', 'Full'] } });
     if (activeRoom) {
+      if (activeRoom._id.toString() === roomId.toString()) {
+        return activeRoom;
+      }
       await this.leaveRoom(activeRoom._id, user._id);
     }
 
@@ -570,6 +611,8 @@ class MatchingService {
       }
     }
 
+    // Deduplicate array before pushing to guarantee uniqueness
+    room.members = room.members.filter((m) => m.user.toString() !== user._id.toString());
     room.members.push({ user: user._id, gender: user.gender, introduction: introduction || 'Hi! Excited to watch this movie together.' });
     if (room.members.length >= room.capacity) {
       room.status = 'Full';
@@ -662,6 +705,25 @@ class MatchingService {
   }
 
   async setReadyToChat(roomId, userId) {
+    const maxRetries = 3;
+    let attempt = 0;
+
+    while (attempt < maxRetries) {
+      attempt++;
+      try {
+        return await this._executeSetReadyToChat(roomId, userId);
+      } catch (error) {
+        if (error.name === 'VersionError' && attempt < maxRetries) {
+          console.warn(`[Matching Concurrency] Version conflict on setReadyToChat. Retrying attempt ${attempt}/${maxRetries}...`);
+          await new Promise((resolve) => setTimeout(resolve, Math.random() * 150 + 50));
+          continue;
+        }
+        throw error;
+      }
+    }
+  }
+
+  async _executeSetReadyToChat(roomId, userId) {
     const room = await Room.findById(roomId).populate('members.user');
     if (!room) {
       throw new NotFoundError('Room not found', 'ROOM_NOT_FOUND');
@@ -737,6 +799,25 @@ class MatchingService {
   }
 
   async leaveIntro(roomId, userId) {
+    const maxRetries = 3;
+    let attempt = 0;
+
+    while (attempt < maxRetries) {
+      attempt++;
+      try {
+        return await this._executeLeaveIntro(roomId, userId);
+      } catch (error) {
+        if (error.name === 'VersionError' && attempt < maxRetries) {
+          console.warn(`[Matching Concurrency] Version conflict on leaveIntro. Retrying attempt ${attempt}/${maxRetries}...`);
+          await new Promise((resolve) => setTimeout(resolve, Math.random() * 150 + 50));
+          continue;
+        }
+        throw error;
+      }
+    }
+  }
+
+  async _executeLeaveIntro(roomId, userId) {
     const room = await Room.findById(roomId).populate('members.user');
     if (!room) {
       throw new NotFoundError('Room not found', 'ROOM_NOT_FOUND');

@@ -13,6 +13,8 @@ test('allows the configured client origin and localhost development origins', ()
   assert.equal(isAllowedOrigin('http://127.0.0.1:3000', 'https://app.philixmate.app'), true);
   assert.equal(isAllowedOrigin('https://moviemate-delta-orpin.vercel.app', 'https://app.philixmate.app'), true);
   assert.equal(isAllowedOrigin('https://moviemate-b4e3.onrender.com', 'https://app.philixmate.app'), true);
+  assert.equal(isAllowedOrigin('https://philixmate.in', 'https://app.philixmate.app'), true);
+  assert.equal(isAllowedOrigin('https://www.philixmate.in', 'https://app.philixmate.app'), true);
 });
 
 test('rejects untrusted origins', () => {
