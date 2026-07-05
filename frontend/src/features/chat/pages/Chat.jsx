@@ -28,7 +28,7 @@ const getSocketUrl = () => {
 };
 
 // ── Chat Bubble ───────────────────────────────────────────────────────────────
-const ChatMessage = ({ msg, isMine, senderName, senderInitial, idx, onReact, onPin, reactions = {}, isPinned = false }) => {
+const ChatMessage = ({ msg, isMine, senderName, senderInitial, idx, onReact, onPin, reactions = {}, isPinned = false, isMobile }) => {
   if (msg.isSystem) {
     return (
       <div key={msg.id || msg._id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 0' }}>
@@ -46,11 +46,11 @@ const ChatMessage = ({ msg, isMine, senderName, senderInitial, idx, onReact, onP
   return (
     <div style={{ display: 'flex', flexDirection: isMine ? 'row-reverse' : 'row', alignItems: 'flex-end', gap: 8, animation: 'slideUp 0.3s ease forwards', position: 'relative' }} className="group">
       {!isMine && (
-        <div style={{ width: 32, height: 32, borderRadius: '50%', background: `linear-gradient(135deg, ${color}, ${color}aa)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700, color: 'white', flexShrink: 0, marginBottom: 4 }}>
+        <div style={{ width: isMobile ? 28 : 32, height: isMobile ? 28 : 32, borderRadius: '50%', background: `linear-gradient(135deg, ${color}, ${color}aa)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: isMobile ? '0.7rem' : '0.8rem', fontWeight: 700, color: 'white', flexShrink: 0, marginBottom: 4 }}>
           {(senderInitial || '?').toUpperCase()}
         </div>
       )}
-      <div style={{ maxWidth: '72%', display: 'flex', flexDirection: 'column', gap: 3, alignItems: isMine ? 'flex-end' : 'flex-start' }}>
+      <div style={{ maxWidth: isMobile ? '88%' : '72%', display: 'flex', flexDirection: 'column', gap: 3, alignItems: isMine ? 'flex-end' : 'flex-start' }}>
         {!isMine && senderName && (
           <p style={{ fontSize: '0.72rem', color: '#6b6b85', fontWeight: 600, marginLeft: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
             {senderName} {isPinned && <><PremiumIcon name="pin" size={14} color="#ffc107" /> <span style={{ color: '#ffc107' }}>Pinned</span></>}
@@ -60,14 +60,14 @@ const ChatMessage = ({ msg, isMine, senderName, senderInitial, idx, onReact, onP
           <span style={{ fontSize: '0.65rem', color: '#ffc107', marginRight: 4, alignSelf: 'flex-end', display: 'flex', alignItems: 'center', gap: 4 }}><PremiumIcon name="pin" size={14} color="#ffc107" /> Pinned</span>
         )}
         <div style={{
-          padding: '10px 14px',
+          padding: isMobile ? '8px 12px' : '10px 14px',
           borderRadius: isMine ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
           background: isMine
             ? 'linear-gradient(135deg, #e8102a, #ff3a4a)'
             : 'rgba(255,255,255,0.08)',
           border: isMine ? 'none' : '1px solid rgba(255,255,255,0.07)',
           color: '#f0f0fa',
-          fontSize: '0.9375rem',
+          fontSize: isMobile ? '0.875rem' : '0.9375rem',
           lineHeight: 1.5,
           boxShadow: isMine ? '0 4px 16px rgba(232,16,42,0.2)' : '0 2px 8px rgba(0,0,0,0.3)',
           position: 'relative',
@@ -76,27 +76,29 @@ const ChatMessage = ({ msg, isMine, senderName, senderInitial, idx, onReact, onP
         }}>
           {msg.text}
 
-          {/* Hover actions panel */}
+          {/* Actions panel (Hover on Desktop, Inline on Mobile) */}
           <div style={{
-            position: 'absolute',
-            top: -28,
-            right: isMine ? 'auto' : 0,
-            left: isMine ? 'auto' : 0,
-            background: 'rgba(15,15,30,0.95)',
-            border: '1px solid rgba(255,255,255,0.12)',
+            position: isMobile ? 'relative' : 'absolute',
+            top: isMobile ? 0 : -28,
+            marginTop: isMobile ? 6 : 0,
+            right: isMobile ? 'auto' : (isMine ? 'auto' : 0),
+            left: isMobile ? 'auto' : (isMine ? 'auto' : 0),
+            background: isMobile ? 'transparent' : 'rgba(15,15,30,0.95)',
+            border: isMobile ? 'none' : '1px solid rgba(255,255,255,0.12)',
             borderRadius: 8,
-            padding: '2px 6px',
+            padding: isMobile ? '0' : '2px 6px',
             display: 'flex',
-            gap: 6,
+            gap: isMobile ? 12 : 6,
             zIndex: 10,
-            opacity: 0,
+            opacity: isMobile ? 1 : 0,
             transition: 'opacity 150ms ease',
-            pointerEvents: 'none',
-          }} className="group-hover:opacity-100 group-hover:pointer-events-auto">
+            pointerEvents: isMobile ? 'auto' : 'none',
+            justifyContent: isMine ? 'flex-end' : 'flex-start'
+          }} className={isMobile ? "" : "group-hover:opacity-100 group-hover:pointer-events-auto"}>
             {['thumbsup', 'heart', 'laugh', 'fire'].map(name => (
-              <IconButton key={name} name={name} size={18} color="#a8a8c0" onClick={() => onReact(msg._id || msg.text, name)} ariaLabel={name} />
+              <IconButton key={name} name={name} size={isMobile ? 16 : 18} color="#a8a8c0" onClick={() => onReact(msg._id || msg.text, name)} ariaLabel={name} />
             ))}
-            <IconButton name="pin" size={18} color="#ffc107" onClick={() => onPin(msg)} ariaLabel="Pin message" />
+            <IconButton name="pin" size={isMobile ? 16 : 18} color="#ffc107" onClick={() => onPin(msg)} ariaLabel="Pin message" />
           </div>
         </div>
 
@@ -348,40 +350,41 @@ const Chat = () => {
 
       {/* ── Top Bar ── */}
       <header style={{
-        height: 64, flexShrink: 0,
+        height: 'auto', minHeight: 64, flexShrink: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 24px',
+        padding: isMobile ? '12px 12px' : '0 24px',
         background: 'rgba(5,5,10,0.92)',
         backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
         borderBottom: '1px solid rgba(255,255,255,0.07)',
         boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
         zIndex: 10,
+        gap: 8
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button onClick={() => navigate('/dashboard')} aria-label="Back to dashboard" style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a8a8c0', transition: 'all 200ms ease' }}
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12, overflow: 'hidden' }}>
+          <button onClick={() => navigate('/dashboard')} aria-label="Back to dashboard" style={{ width: isMobile ? 32 : 36, height: isMobile ? 32 : 36, borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a8a8c0', transition: 'all 200ms ease', flexShrink: 0 }}
             onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = '#f0f0fa'; }}
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#a8a8c0'; }}>
             ←
           </button>
-          <div>
+          <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <h1 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 700, fontSize: '1rem', color: '#f0f0fa', margin: 0, letterSpacing: '-0.01em' }}>
+              <h1 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 700, fontSize: isMobile ? '0.9rem' : '1rem', color: '#f0f0fa', margin: 0, letterSpacing: '-0.01em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {room ? `Room #${room.id.slice(-4).toUpperCase()}` : 'Loading...'}
               </h1>
-              {room && <Badge variant={room.status === 'full' ? 'full' : 'open'} />}
+              {!isMobile && room && <Badge variant={room.status === 'full' ? 'full' : 'open'} />}
             </div>
             {room && (
-              <div style={{ fontSize: '0.75rem', color: '#6b6b85', marginTop: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <PremiumIcon name="movie" size={14} color="#6b6b85" /> {room.movie} <span>·</span> <PremiumIcon name="location" size={14} color="#6b6b85" /> {room.cinema}
+              <div style={{ fontSize: isMobile ? '0.65rem' : '0.75rem', color: '#6b6b85', marginTop: 1, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <PremiumIcon name="movie" size={14} color="#6b6b85" /> <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{room.movie}</span> <span>·</span> <PremiumIcon name="location" size={14} color="#6b6b85" /> <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{room.cinema}</span>
               </div>
             )}
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 8, flexShrink: 0 }}>
           {/* Member count badge */}
           {room && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 9999, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: isMobile ? '4px 8px' : '5px 12px', borderRadius: 9999, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
               <PremiumIcon name="group" size={14} color="#a8a8c0" />
               <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#a8a8c0' }}>{room.memberCount}/{room.capacity}</span>
             </div>
@@ -393,7 +396,7 @@ const Chat = () => {
               setMembersOpen(false);
             }}
             style={{
-              padding: '6px 12px', borderRadius: 9999,
+              padding: isMobile ? '6px 8px' : '6px 12px', borderRadius: 9999,
               background: pinnedOpen ? 'rgba(245,166,35,0.15)' : 'rgba(255,255,255,0.05)',
               border: `1px solid ${pinnedOpen ? 'rgba(245,166,35,0.3)' : 'rgba(255,255,255,0.08)'}`,
               color: pinnedOpen ? '#ffc107' : '#a8a8c0',
@@ -414,7 +417,7 @@ const Chat = () => {
               setPinnedOpen(false);
             }}
             style={{
-              padding: '6px 12px', borderRadius: 9999,
+              padding: isMobile ? '6px 8px' : '6px 12px', borderRadius: 9999,
               background: membersOpen ? 'rgba(255,107,122,0.15)' : 'rgba(255,255,255,0.05)',
               border: `1px solid ${membersOpen ? 'rgba(255,107,122,0.3)' : 'rgba(255,255,255,0.08)'}`,
               color: membersOpen ? '#ff6b7a' : '#a8a8c0',
@@ -427,11 +430,12 @@ const Chat = () => {
             <PremiumIcon name="group" size={16} color={membersOpen ? '#ff6b7a' : '#f0f0fa'} />
             {!isMobile && `Members (${room?.members?.length || 0})`}
           </button>
+          
           <button
             id="exit-chat-btn"
             onClick={handleExitChat}
             style={{
-              padding: '7px 16px', borderRadius: 9999,
+              padding: isMobile ? '6px 12px' : '7px 16px', borderRadius: 9999,
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid rgba(255,255,255,0.1)',
               color: '#a8a8c0',
@@ -451,7 +455,7 @@ const Chat = () => {
         <div style={{
           background: 'rgba(5,5,10,0.6)',
           borderBottom: '1px solid rgba(255,255,255,0.06)',
-          padding: '8px 24px',
+          padding: isMobile ? '8px 12px' : '8px 24px',
           display: 'flex',
           flexDirection: 'column',
           gap: 6
@@ -487,7 +491,7 @@ const Chat = () => {
             ref={chatBoxRef}
             style={{
               flex: 1, overflowY: 'auto',
-              padding: '24px 24px 12px',
+              padding: isMobile ? '16px 12px 12px' : '24px 24px 12px',
               display: 'flex', flexDirection: 'column', gap: 16,
             }}
           >
@@ -512,11 +516,11 @@ const Chat = () => {
                     isPinned={pinnedMessages.some(pm => (pm.id || pm._id || pm.text) === (msg.id || msg._id || msg.text))}
                     onReact={handleReact}
                     onPin={handlePin}
+                    isMobile={isMobile}
                   />
                 );
               })
             )}
-
 
           </div>
 
@@ -529,7 +533,7 @@ const Chat = () => {
 
           {/* Input Bar */}
           <div style={{
-            padding: '12px 20px 16px',
+            padding: isMobile ? '10px 12px 12px' : '12px 20px 16px',
             background: 'rgba(8,8,16,0.8)',
             backdropFilter: 'blur(12px)',
             borderTop: '1px solid rgba(255,255,255,0.06)',
