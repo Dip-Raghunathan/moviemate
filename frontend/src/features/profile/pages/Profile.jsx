@@ -294,7 +294,7 @@ const Profile = () => {
             <Avatar name={activeUser.name} size="3xl" ring={activeUser.isPro} />
 
             {/* Info */}
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ flex: 1, minWidth: 0, maxWidth: '100%' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
                 <h1 style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 900, fontSize: 'clamp(1.5rem,4vw,2.25rem)', color: '#f0f0fa', letterSpacing: '-0.03em', margin: 0 }}>
                   {activeUser.name}
@@ -352,8 +352,9 @@ const Profile = () => {
 
               <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
                 {isOwnProfile && (
-                  <span style={{ fontSize: '0.875rem', color: '#6b6b85', display: 'flex', alignItems: 'center', gap: 5, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
-                    <PremiumIcon name="message" size={14} color="#6b6b85" /> {activeUser.email}
+                  <span style={{ fontSize: '0.875rem', color: '#6b6b85', display: 'flex', alignItems: 'flex-start', gap: 5, maxWidth: '100%' }}>
+                    <span style={{ marginTop: 2, flexShrink: 0 }}><PremiumIcon name="message" size={14} color="#6b6b85" /></span>
+                    <span style={{ wordBreak: 'break-all', minWidth: 0 }}>{activeUser.email}</span>
                   </span>
                 )}
                 <span style={{ fontSize: '0.875rem', color: '#6b6b85', display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -530,3 +531,254 @@ const Profile = () => {
                       fontSize: '0.875rem',
                       fontWeight: 700,
                       cursor: 'pointer',
+                      transition: 'all 200ms ease',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.18)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; }}
+                  >
+                    Delete Account Permanently
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* Achievements */}
+            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 24, padding: '24px' }}>
+              <SH title="Achievements" subtitle="Unlock badges as you use PhilixMate" />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                {ACHIEVEMENTS.map((a, i) => (
+                  <div key={i} style={{
+                    padding: '12px', borderRadius: 12,
+                    background: a.unlocked ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.025)',
+                    border: `1px solid ${a.unlocked ? 'rgba(245,166,35,0.25)' : 'rgba(255,255,255,0.06)'}`,
+                    opacity: a.unlocked ? 1 : 0.45,
+                    transition: 'all 200ms ease',
+                    position: 'relative',
+                  }}>
+                    {a.unlocked && (
+                      <div style={{ position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: '50%', background: '#f5a623', boxShadow: '0 0 6px rgba(245,166,35,0.6)' }} />
+                    )}
+                    <div style={{ display: 'flex', marginBottom: 6 }}>
+                      <PremiumIcon name={a.icon} size={24} color={a.unlocked ? '#f5a623' : '#4a4a60'} />
+                    </div>
+                    <p style={{ fontSize: '0.8rem', fontWeight: 700, color: a.unlocked ? '#f0f0fa' : '#6b6b85', marginBottom: 2 }}>{a.name}</p>
+                    <p style={{ fontSize: '0.72rem', color: '#4a4a60', lineHeight: 1.4 }}>{a.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* ── Right column ── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24, animation: 'slideUp 0.6s cubic-bezier(0.16,1,0.3,1) 0.2s both' }}>
+
+            {/* My Watch Stats */}
+            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 24, padding: '24px' }}>
+              <SH title="My Watch Stats" subtitle="Detailed analytics of your theater matchings" />
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
+                <div style={{ padding: 14, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 16, textAlign: 'center' }}>
+                  <p style={{ fontSize: '0.7rem', fontWeight: 700, color: '#6b6b85', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>Match Completion</p>
+                  <p style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: '1.25rem', color: '#ff6b7a', margin: 0 }}>94%</p>
+                </div>
+                <div style={{ padding: 14, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 16, textAlign: 'center' }}>
+                  <p style={{ fontSize: '0.7rem', fontWeight: 700, color: '#6b6b85', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>Avg Rating</p>
+                  <p style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: '1.25rem', color: '#00f0ff', margin: 0 }}>
+                    {journal.length > 0 ? (journal.reduce((sum, r) => sum + r.rating, 0) / journal.length).toFixed(1) : '0.0'}/10
+                  </p>
+                </div>
+                <div style={{ padding: 14, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 16, textAlign: 'center' }}>
+                  <p style={{ fontSize: '0.7rem', fontWeight: 700, color: '#6b6b85', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>Logged Reviews</p>
+                  <p style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: '1.25rem', color: '#f5a623', margin: 0 }}>{journal.length}</p>
+                </div>
+                <div style={{ padding: 14, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 16, textAlign: 'center' }}>
+                  <p style={{ fontSize: '0.7rem', fontWeight: 700, color: '#6b6b85', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>Rank</p>
+                  <p style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: '0.85rem', color: '#10b981', margin: 0, textTransform: 'uppercase', paddingTop: 4 }}>
+                    {engagement.level >= 5 ? 'Cinephile' : engagement.level >= 2 ? 'Reviewer' : 'Novice'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Account info */}
+            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 24, padding: '24px' }}>
+              <SH title="Account Details" />
+              {[
+                { label: 'Full Name',        val: activeUser.name },
+                ...(isOwnProfile ? [{ label: 'Email', val: activeUser.email }] : []),
+                { label: 'Age',              val: activeUser.age },
+                { label: 'Gender',           val: activeUser.gender?.charAt(0).toUpperCase() + activeUser.gender?.slice(1) },
+                { label: 'Favorite Genres',  val: activeUser.favoriteGenres?.length ? activeUser.favoriteGenres.join(', ') : 'None set' },
+              ].map(({ label, val }) => (
+                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', gap: 16 }}>
+                  <span style={{ fontSize: '0.8125rem', color: '#6b6b85', fontWeight: 500, flexShrink: 0 }}>{label}</span>
+                  <span style={{ fontSize: '0.8125rem', color: '#a8a8c0', fontWeight: 600, textAlign: 'right', wordBreak: 'break-all', minWidth: 0, flex: 1 }}>{val ?? '—'}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Events Hosted Display */}
+            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 24, padding: '24px' }}>
+              <SH title="Hosted Watch Parties" subtitle={isOwnProfile ? "Watch meetups you are hosting" : `Cinema meetups organized by ${activeUser.name}`} />
+              
+              {hostedEventsLoading ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '32px 0' }}>
+                  <PremiumIcon name="movie" size={24} color="#e8102a" style={{ animation: 'spin 2s linear infinite' }} />
+                </div>
+              ) : hostedEvents.length === 0 ? (
+                <div style={{ padding: '24px', textAlign: 'center', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: 16 }}>
+                  <PremiumIcon name="calendar" size={28} color="#6b6b85" style={{ margin: '0 auto 12px' }} />
+                  <p style={{ fontSize: '0.8rem', color: '#6b6b85', margin: 0 }}>No scheduled events hosted.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {hostedEvents.map((evt) => {
+                    const dateStr = new Date(evt.showtime).toLocaleDateString([], {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric',
+                    });
+                    const timeStr = new Date(evt.showtime).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    });
+                    return (
+                      <div key={evt._id} style={{ padding: '16px', borderRadius: 16, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <h4 style={{ fontSize: '0.88rem', fontWeight: 700, color: '#f0f0fa', margin: 0 }}>{evt.title}</h4>
+                          <Link
+                            to="/events"
+                            style={{
+                              padding: '4px 10px', borderRadius: 8, fontSize: '0.7rem', fontWeight: 700,
+                              background: 'rgba(255,255,255,0.05)', color: '#a8a8c0', textDecoration: 'none',
+                              border: '1px solid rgba(255,255,255,0.08)'
+                            }}
+                          >
+                            View
+                          </Link>
+                        </div>
+                        <p style={{ fontSize: '0.76rem', color: '#6b6b85', margin: 0 }}>{evt.description}</p>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4, borderTop: '1px solid rgba(255,255,255,0.03)', paddingTop: 8, fontSize: '0.74rem', color: '#a8a8c0' }}>
+                          <span>🎬 {evt.movie} @ {evt.theatre}</span>
+                          <span>📅 {dateStr} at {timeStr}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Security & Sessions */}
+            {isOwnProfile && (
+              <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 24, padding: '24px' }}>
+                <SH title="Security & Sessions" subtitle="Manage active logins and device sessions" />
+                <p style={{ fontSize: '0.78rem', color: '#6b6b85', lineHeight: 1.5, marginBottom: 16 }}>
+                  View details about the devices and browsers currently logged into your account and manage your Pro subscription status.
+                </p>
+                <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+                  <Link
+                    to="/sessions"
+                    style={{
+                      flex: 1,
+                      padding: '10px 16px',
+                      borderRadius: 12,
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      color: '#f0f0fa',
+                      fontSize: '0.8125rem',
+                      fontWeight: 600,
+                      textDecoration: 'none',
+                      textAlign: 'center',
+                      transition: 'all 200ms ease'
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                    }}
+                  >
+                    Sessions
+                  </Link>
+                  <Link
+                    to="/upgrade"
+                    style={{
+                      flex: 1,
+                      padding: '10px 16px',
+                      borderRadius: 12,
+                      background: user.isPro ? 'rgba(245, 166, 35, 0.1)' : 'linear-gradient(135deg, #f5a623, #e8102a)',
+                      border: user.isPro ? '1px solid rgba(245, 166, 35, 0.25)' : 'none',
+                      color: user.isPro ? '#f5a623' : 'white',
+                      fontSize: '0.8125rem',
+                      fontWeight: 600,
+                      textDecoration: 'none',
+                      textAlign: 'center',
+                      transition: 'all 200ms ease',
+                      boxShadow: !user.isPro ? '0 4px 12px rgba(232,16,42,0.2)' : 'none'
+                    }}
+                    onMouseEnter={e => {
+                      if (user.isPro) {
+                        e.currentTarget.style.background = 'rgba(245, 166, 35, 0.18)';
+                      } else {
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (user.isPro) {
+                        e.currentTarget.style.background = 'rgba(245, 166, 35, 0.1)';
+                      } else {
+                        e.currentTarget.style.transform = 'none';
+                      }
+                    }}
+                  >
+                    {user.isPro ? 'Pro Subscription' : 'Upgrade to Pro'}
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {/* Watch Journal (Reviews History) */}
+            <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 24, padding: '24px' }}>
+              <SH title="Watch Journal" subtitle="Your movie reviews & logs history" />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 400, overflowY: 'auto' }} className="premium-scrollbar">
+                {journal.length === 0 ? (
+                  <div style={{ padding: '24px 0', textAlign: 'center', color: '#6b6b85', fontSize: '0.875rem' }}>
+                    No movies logged yet. Review movies to start your journal!
+                  </div>
+                ) : (
+                  journal.map(rev => (
+                    <div key={rev._id} style={{
+                      padding: '14px', borderRadius: 14,
+                      background: 'rgba(255,255,255,0.02)',
+                      border: '1px solid rgba(255,255,255,0.05)',
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: '#f0f0fa', display: 'flex', alignItems: 'center', gap: 6 }}><PremiumIcon name="movie" size={14} color="#f0f0fa" /> {rev.movie}</h4>
+                        <span style={{
+                          fontSize: '0.75rem', fontWeight: 800, color: '#ff6b7a',
+                          background: 'rgba(232,16,42,0.1)', padding: '2px 8px', borderRadius: 6,
+                          display: 'flex', alignItems: 'center', gap: 4
+                        }}>
+                          <PremiumIcon name="star" size={12} color="#ff6b7a" /> {rev.rating}/10
+                        </span>
+                      </div>
+                      <p style={{ fontSize: '0.8rem', color: '#a8a8c0', lineHeight: 1.4 }}>{rev.text}</p>
+                      <span style={{ fontSize: '0.65rem', color: '#4a4a60', marginTop: 8, display: 'block' }}>
+                        Logged on {new Date(rev.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Profile;
