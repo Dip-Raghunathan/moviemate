@@ -787,8 +787,7 @@ const Matching = () => {
                   setReadyLoading(true);
                   try {
                     await roomService.readyForChat(room.id || room._id);
-                    const { room: updatedRoom } = await roomService.getRoom(room.id || room._id);
-                    setRoom(updatedRoom);
+                    navigate(`/chat/${room.id || room._id}`);
                   } catch (err) {
                     setError('Could not update status. Please try again.');
                   } finally {
