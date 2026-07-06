@@ -572,7 +572,7 @@ const Home = () => {
           </p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 24, flexWrap: 'wrap', marginBottom: 24 }}>
             {[
-      {name: 'Privacy Policy', path: '/privacy-policy'},
+      {name: 'Privacy Policy', path: '/privacy-policy.html'},
       {name : 'Contact Us', path : '/contact-us'},
       {name: 'Help Center', path:'/help-center'}].map(item=> (<a
                                                                 key={item.name}
