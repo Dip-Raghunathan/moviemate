@@ -571,13 +571,17 @@ const Home = () => {
             The World's Most Intelligent Movie Companion Platform
           </p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 24, flexWrap: 'wrap', marginBottom: 24 }}>
-            {['Privacy Policy', 'Contact Us', 'Help Center'].map(item => (
-              <a key={item} href="#" style={{ fontSize: '0.8125rem', color: '#4a4a60', transition: 'color 150ms ease' }}
-                onMouseEnter={e => e.currentTarget.style.color = '#a8a8c0'}
-                onMouseLeave={e => e.currentTarget.style.color = '#4a4a60'}>
-                {item}
-              </a>
-            ))}
+            {[
+      {name: 'Privacy Policy', path: '/privacy-policy'},
+      {name : 'Contact Us', path : '/contact-us'},
+      {name: 'Help Center', path:'/help-center'}].map(item=> (<a
+                                                                key={item.name}
+                                                                href={item.path}
+                                                                style={{fontSize: 'o.8125rem', color: '#4a4a60', transition: 'color 150ms ease'}}
+                                                                onMouseEnter={e => e.currentTarget.style.color='#a8a8c0'}
+                                                                onMouseLeave={e => e.currentTarget.style.color='#4a4a60'}>
+        {item.name}
+      </a>))}
           </div>
           <p style={{ color: '#35354a', fontSize: '0.75rem' }}>
             © 2026 PhilixMate. All rights reserved.
