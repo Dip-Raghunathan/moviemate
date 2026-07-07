@@ -6,7 +6,7 @@ import Badge from './ui/Badge';
 import { PremiumIcon } from './icons/IconComponents';
 import * as socialService from '../../services/socialService';
 import io from 'socket.io-client';
-import myLogo from '../../assets/logo.png';
+import myLogo from '../../logo.png';
 
 // Film reel icon SVG
 const FilmIcon = () => (
