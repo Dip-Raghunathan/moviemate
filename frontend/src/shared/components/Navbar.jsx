@@ -14,7 +14,9 @@ const FilmIcon = () => (
     src={myLogo}
     alt="Logo"
     style={{ width='100%',
-    height='100%', objectFit: 'cover' }}
+            height='100%', 
+            objectFit: 'contain',
+            display: 'block'}}
     />
 );
 
@@ -191,12 +193,12 @@ const Navbar = ({ rightContent }) => {
           >
             <div style={{
               width: 36, height: 36, borderRadius: 10,
-              background: 'linear-gradient(135deg, #e8102a, #ff4b5e)',
+              /*background: 'linear-gradient(135deg, #e8102a, #ff4b5e)',*/
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'white',
-              boxShadow: '0 4px 16px rgba(232,16,42,0.4)',
+              /*color: 'white',
+              boxShadow: '0 4px 16px rgba(232,16,42,0.4)',*/
               flexShrink: 0,
-              overflow: 'hidden'
+              /*overflow: 'hidden'*/
             }}>
               <FilmIcon />
             </div>
