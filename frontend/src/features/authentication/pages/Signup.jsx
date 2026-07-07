@@ -137,11 +137,19 @@ const Signup = () => {
       <div style={{ width: '100%', maxWidth: 480, position: 'relative', zIndex: 1 }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg,#e8102a,#ff4b5e)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 20px rgba(232,16,42,0.4)' }}>
-              <FilmIcon />
-            </div>
-            <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1.25rem', color: '#f0f0fa' }}>PhilixMate</span>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+            <img 
+              src="/logo.png" 
+              alt="Logo" 
+              style={{
+                width: 56, 
+                height: 56, 
+                borderRadius: 14, 
+                objectFit: 'cover', 
+                boxShadow: '0 6px 24px rgba(0, 0, 0, 0.25)' 
+              }} 
+            />
+            <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1.6rem', color: '#f0f0fa', letterSpacing: '-0.02em' }}>PhilixMate</span>
           </div>
 
           {/* Step progress */}

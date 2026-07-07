@@ -123,11 +123,19 @@ const VerifyEmail = () => {
       <div style={{ width: '100%', maxWidth: 460, position: 'relative', zIndex: 1, animation: 'slideUp 0.6s cubic-bezier(0.16,1,0.3,1) forwards' }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#e8102a,#ff4b5e)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 20px rgba(232,16,42,0.4)' }}>
-              <FilmIcon />
-            </div>
-            <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1.2rem', color: '#f0f0fa' }}>PhilixMate</span>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12 }}>
+            <img 
+              src="/logo.png" 
+              alt="Logo" 
+              style={{
+                width: 56, 
+                height: 56, 
+                borderRadius: 14, 
+                objectFit: 'cover', 
+                boxShadow: '0 6px 24px rgba(0, 0, 0, 0.25)' 
+              }} 
+            />
+            <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1.6rem', color: '#f0f0fa', letterSpacing: '-0.02em' }}>PhilixMate</span>
           </div>
         </div>
 

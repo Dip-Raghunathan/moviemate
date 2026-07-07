@@ -43,8 +43,19 @@ const ForgotPassword = () => {
       <div style={{ width: '100%', maxWidth: 420, position: 'relative', zIndex: 1, animation: 'slideUp 0.7s cubic-bezier(0.16,1,0.3,1) forwards' }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 36 }}>
-          <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-            <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1.25rem', color: '#f0f0fa' }}>PhilixMate</span>
+          <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
+            <img 
+              src="/logo.png" 
+              alt="Logo" 
+              style={{
+                width: 56, 
+                height: 56, 
+                borderRadius: 14, 
+                objectFit: 'cover', 
+                boxShadow: '0 6px 24px rgba(0, 0, 0, 0.25)' 
+              }} 
+            />
+            <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1.6rem', color: '#f0f0fa', letterSpacing: '-0.02em' }}>PhilixMate</span>
           </Link>
         </div>
 

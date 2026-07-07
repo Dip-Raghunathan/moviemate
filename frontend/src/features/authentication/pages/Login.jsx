@@ -133,10 +133,18 @@ const Login = () => {
         <div style={{ position: 'relative', zIndex: 2, padding: 48, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', width: '100%' }}>
           {/* Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg,#e8102a,#ff4b5e)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', boxShadow: '0 4px 20px rgba(232,16,42,0.4)' }}>
-              <FilmIcon />
-            </div>
-            <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1.25rem', color: '#f0f0fa' }}>PhilixMate</span>
+            <img 
+              src="/logo.png" 
+              alt="Logo" 
+              style={{
+                width: 56, 
+                height: 56, 
+                borderRadius: 14, 
+                objectFit: 'cover', 
+                boxShadow: '0 6px 24px rgba(0, 0, 0, 0.3)' 
+              }} 
+            />
+            <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1.6rem', color: '#f0f0fa', letterSpacing: '-0.02em' }}>PhilixMate</span>
           </div>
 
           {/* Bottom quote */}
@@ -172,11 +180,19 @@ const Login = () => {
           position: 'relative', zIndex: 1,
         }}>
           {/* Logo (mobile only) */}
-          <div className="flex lg:hidden items-center gap-2 mb-8">
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#e8102a,#ff4b5e)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-              <FilmIcon />
-            </div>
-            <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1.125rem', color: '#f0f0fa' }}>PhilixMate</span>
+          <div className="flex lg:hidden items-center gap-3 mb-8">
+            <img 
+              src="/logo.png" 
+              alt="Logo" 
+              style={{
+                width: 56, 
+                height: 56, 
+                borderRadius: 14, 
+                objectFit: 'cover', 
+                boxShadow: '0 6px 20px rgba(0, 0, 0, 0.25)' 
+              }} 
+            />
+            <span style={{ fontFamily: 'Outfit,sans-serif', fontWeight: 800, fontSize: '1.5rem', color: '#f0f0fa', letterSpacing: '-0.02em' }}>PhilixMate</span>
           </div>
 
           {/* Header */}
