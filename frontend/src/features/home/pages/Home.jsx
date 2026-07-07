@@ -574,7 +574,7 @@ const Home = () => {
             {[
       {name: 'Privacy Policy', path: '/privacy-policy.html'},
       {name : 'Contact Us', path : 'mailto:support@philixmate.in'},
-      {name: 'Help Center', path:'../help/help-us-form.html'}].map(item=> (<a
+      {name: 'Help Center', path:'..features/help/help-us-form.html'}].map(item=> (<a
                                                                 key={item.name}
                                                                 href={item.path}
                                                                 style={{fontSize: 'o.8125rem', color: '#4a4a60', transition: 'color 150ms ease'}}
