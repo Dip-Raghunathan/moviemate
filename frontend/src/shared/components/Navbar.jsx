@@ -13,8 +13,8 @@ const FilmIcon = () => (
   <img 
     src={myLogo}
     alt="Logo"
-    width="22"
-    height="22"
+    width="33"
+    height="33"
     style={{ objectFit: 'contain' }}
     />
 );
