@@ -36,14 +36,14 @@ const AppLoadingSplash = () => (
     animation: 'fadeIn 0.3s ease forwards',
   }}>
     {/* Logo */}
-    <div style={{
+    {/*<div style={{
       width: 64, height: 64, borderRadius: 18,
       background: 'linear-gradient(135deg, #e8102a, #ff4b5e)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       marginBottom: 20,
       boxShadow: '0 8px 32px rgba(232,16,42,0.4)',
       animation: 'float 2s ease-in-out infinite',
-    }}>
+    }}>*/}
       {/*<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="2" width="20" height="20" rx="2.18"/>
         <line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/>
