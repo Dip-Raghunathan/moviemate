@@ -164,11 +164,13 @@ class MatchingService {
     });
     const blockedUserIds = blockedRels.map(r => r.user1.toString() === user._id.toString() ? r.user2.toString() : r.user1.toString());
 
-    // 1. Query candidates for city-wide matches watching the same movie
+    // 1. Query candidates for exact matching sessions (same movie, city, theatre, date, showTiming, matchType)
     const query = {
       movie: normalizedMovie,
       city: normalizedCity,
+      cinema: normalizedCinema,
       date,
+      showTiming,
       matchType,
       intent: normalizedIntent,
       status: { $in: ['Active', 'open'] }
