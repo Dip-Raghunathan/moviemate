@@ -85,7 +85,7 @@ const Signup = () => {
     if (step === 1) {
       if (!form.name.trim()) return setError('Full name is required.');
       if (!form.email.trim() || !form.email.includes('@')) return setError('A valid email is required.');
-      if (!form.age || Number(form.age) < 16 || Number(form.age) > 100) return setError('Age must be between 16 and 100.');
+      if (!form.age || Number(form.age) < 18 || Number(form.age) > 100) return setError('Age must be between 18 and 100.');
       if (!form.gender) return setError('Please select your gender.');
     }
     if (step === 3) {
