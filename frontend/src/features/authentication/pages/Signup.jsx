@@ -221,7 +221,7 @@ const Signup = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
                     <label htmlFor="su-age" style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#a8a8c0', marginBottom: 7 }}>Age</label>
-                    <input id="su-age" name="age" type="number" min="16" max="100" placeholder="25" value={form.age} onChange={handleChange} onFocus={() => setFocus('age',true)} onBlur={() => setFocus('age',false)} style={inputStyle(focused.age)} required />
+                    <input id="su-age" name="age" type="number" min="18" max="100" placeholder="25" value={form.age} onChange={handleChange} onFocus={() => setFocus('age',true)} onBlur={() => setFocus('age',false)} style={inputStyle(focused.age)} required />
                   </div>
                   <div>
                     <label htmlFor="su-gender" style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#a8a8c0', marginBottom: 7 }}>Gender</label>
