@@ -11,6 +11,8 @@ import Spinner from '../../../shared/components/ui/Spinner';
 import Badge from '../../../shared/components/ui/Badge';
 import ActivityFeed from '../../feed/components/ActivityFeed';
 import { PremiumIcon } from '../../../shared/components/icons/IconComponents';
+import FeaturedMoviePromo from '../components/FeaturedMoviePromo';
+import { FEATURED_MOVIES } from '../config/featuredMovies';
 
 const GENRE_ICONS = {
   Action: 'fire', Comedy: 'comedy', Drama: 'drama', Horror: 'horror',
@@ -493,6 +495,8 @@ const Dashboard = () => {
   const [introText, setIntroText] = useState('');
   const [targetRoomToJoin, setTargetRoomToJoin] = useState(null);
   const [pendingCitySwitch, setPendingCitySwitch] = useState(null);
+  const [showFeaturedPromo, setShowFeaturedPromo] = useState(false);
+  const [promoCampaign, setPromoCampaign] = useState(null);
 
   const [recommendations, setRecommendations] = useState(null);
   const [stats, setStats] = useState(null);
@@ -612,6 +616,10 @@ const Dashboard = () => {
         city: value,
         cinema: THEATRES_BY_CITY[value]?.[0] || ''
       }));
+      if (value.toLowerCase() === 'guwahati') {
+        setPromoCampaign(FEATURED_MOVIES.guwahati);
+        setShowFeaturedPromo(true);
+      }
       return;
     }
     setForm(f => ({ ...f, [name]: value }));
@@ -635,6 +643,10 @@ const Dashboard = () => {
         cinema: THEATRES_BY_CITY[targetCity]?.[0] || ''
       }));
       await fetchVacantRoomsOnly(targetCity);
+      if (targetCity.toLowerCase() === 'guwahati') {
+        setPromoCampaign(FEATURED_MOVIES.guwahati);
+        setShowFeaturedPromo(true);
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to switch city.');
     } finally {
@@ -650,6 +662,14 @@ const Dashboard = () => {
         city: activeRoom.city || selectedCity
       }));
     }
+  };
+
+  const handlePromoContinue = () => {
+    if (promoCampaign) {
+      setForm(f => ({ ...f, movie: promoCampaign.movieName }));
+    }
+    setShowFeaturedPromo(false);
+    setPromoCampaign(null);
   };
 
   const handleMatchTypeChange = (type) => {
@@ -765,9 +785,14 @@ const Dashboard = () => {
             <select
               value={selectedCity}
               onChange={(e) => {
-                setSelectedCity(e.target.value);
-                localStorage.setItem('selected_city', e.target.value);
-                setForm(f => ({ ...f, city: e.target.value }));
+                const newCity = e.target.value;
+                setSelectedCity(newCity);
+                localStorage.setItem('selected_city', newCity);
+                setForm(f => ({ ...f, city: newCity }));
+                if (newCity.toLowerCase() === 'guwahati') {
+                  setPromoCampaign(FEATURED_MOVIES.guwahati);
+                  setShowFeaturedPromo(true);
+                }
               }}
               style={{
                 background: 'transparent',
@@ -1849,6 +1874,12 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+      )}
+      {showFeaturedPromo && promoCampaign && (
+        <FeaturedMoviePromo
+          campaign={promoCampaign}
+          onContinue={handlePromoContinue}
+        />
       )}
     </div>
   );

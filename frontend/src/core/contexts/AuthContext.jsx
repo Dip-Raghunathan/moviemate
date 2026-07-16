@@ -4,11 +4,20 @@ import * as authService from '../../services/authService';
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const useMock = import.meta.env.VITE_USE_MOCK_AUTH === 'true';
+  const [user, setUser] = useState(useMock ? {
+    name: 'Demo Guwahati User',
+    email: 'demo.guwahati@philixmate.test',
+    city: 'Guwahati',
+    gender: 'male'
+  } : null);
+  const [loading, setLoading] = useState(!useMock);
 
   // On app load, if a token exists, verify it and load the user
   useEffect(() => {
+    if (useMock) {
+      return;
+    }
     const init = async () => {
       const token = localStorage.getItem('philixmate_token');
       if (!token) {
