@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import { AuthProvider, useAuth } from './core/contexts/AuthContext';
 import { ToastProvider } from './core/contexts/ToastContext';
 import ProtectedRoute from './shared/components/ProtectedRoute';
@@ -250,6 +251,7 @@ function App() {
               <AppRoutes />
             </GlobalContainer>
           </ErrorBoundary>
+          <Analytics />
         </BrowserRouter>
       </ToastProvider>
     </AuthProvider>
